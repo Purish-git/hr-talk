@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>HR Talk — Ngomong ke HR jadi gampang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F2F0FA;
+    --surface:#FFFFFF;
+    --surface-2:#EAE6FB;
+    --border:#E1DCF3;
+    --ink:#1C1B29;
+    --ink-soft:#5B5871;
+    --accent:#FF7A3D;
+    --accent-ink:#7A2E00;
+    --violet:#6C5CE7;
+    --violet-soft:#EFECFD;
+    --green:#1F9C6E;
+    --green-soft:#E4F6EE;
+    --radius-lg:26px;
+    --radius-md:18px;
+    --radius-sm:12px;
+    --shadow:0 1px 2px rgba(28,27,41,.04), 0 8px 24px rgba(28,27,41,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+    padding-bottom:86px;
+  }
+  .topbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:18px 20px 8px;
+    position:sticky;
+    top:0;
+    background:var(--bg);
+    z-index:10;
+  }
+  .backbtn{
+    width:36px;height:36px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    font-size:16px;
+    color:var(--ink);
+    flex:0 0 auto;
+    visibility:hidden;
+  }
+  .backbtn.show{visibility:visible;}
+  .brand{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .brand .dot{
+    width:10px;height:10px;border-radius:3px;background:var(--accent);
+    transform:rotate(15deg);
+    display:inline-block;
+  }
+  .screen{display:none;padding:6px 20px 24px;}
+  .screen.active{display:block;}
+
+  /* HOME */
+  .hero{
+    background:var(--ink);
+    color:#fff;
+    border-radius:var(--radius-lg);
+    padding:28px 22px 24px;
+    margin-top:6px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    right:-40px;top:-40px;
+    width:140px;height:140px;
+    background:var(--accent);
+    border-radius:40%;
+    opacity:.9;
+    filter:blur(0px);
+  }
+  .hero .kicker{
+    display:inline-block;
+    background:rgba(255,255,255,.12);
+    padding:5px 12px;
+    border-radius:100px;
+    font-size:12.5px;
+    font-weight:500;
+    margin-bottom:14px;
+    position:relative;
+    z-index:1;
+  }
+  .hero h1{
+    font-size:26px;
+    line-height:1.25;
+    position:relative;
+    z-index:1;
+    max-width:230px;
+  }
+  .hero p{
+    margin:12px 0 0;
+    font-size:14.5px;
+    color:rgba(255,255,255,.75);
+    max-width:260px;
+    position:relative;
+    z-index:1;
+  }
+  .cta-row{margin-top:18px;position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{
+    border:none;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    border-radius:100px;
+    padding:12px 18px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:transform .12s ease;
+  }
+  .btn:active{transform:scale(.96);}
+  .btn-primary{background:var(--accent);color:#26130a;}
+  .btn-ghost-dark{background:rgba(255,255,255,.14);color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--ink);}
+  .btn-soft{background:var(--violet-soft);color:var(--violet);}
+  .btn-block{width:100%;justify-content:center;padding:14px;font-size:15px;}
+
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin:26px 0 12px;
+  }
+  .section-head h2{font-size:17px;}
+  .section-head a{font-size:13px;color:var(--violet);font-weight:600;text-decoration:none;cursor:pointer;}
+
+  .quickgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .qcard{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:16px 14px;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  .qcard .emoji{font-size:22px;display:block;margin-bottom:10px;}
+  .qcard .label{font-size:13.5px;font-weight:600;line-height:1.3;}
+
+  .toolbox-row{display:flex;gap:10px;margin-top:8px;}
+  .toolbox-card{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:16px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+  }
+  .toolbox-card .emoji{font-size:20px;}
+  .toolbox-card h3{font-size:14px;margin-top:8px;}
+  .toolbox-card p{font-size:12.5px;color:var(--ink-soft);margin:4px 0 0;line-height:1.4;}
+
+  /* ALL TOOLS */
+  .toolgrid{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .toolrow{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  .toolrow .emoji{
+    width:40px;height:40px;flex:0 0 auto;
+    background:var(--surface-2);
+    border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px;
+  }
+  .toolrow .txt strong{display:block;font-size:14.5px;font-weight:600;}
+  .toolrow .txt span{font-size:12.5px;color:var(--ink-soft);}
+  .toolrow .chev{margin-left:auto;color:var(--ink-soft);font-size:18px;}
+
+  /* FORM */
+  .form-title{font-size:20px;margin:4px 0 4px;}
+  .form-sub{font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;font-size:13px;font-weight:600;margin-bottom:6px;
+  }
+  .field .opt{color:var(--ink-soft);font-weight:400;}
+  .field input[type=text], .field textarea, .field select{
+    width:100%;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    font-size:14.5px;
+    font-family:inherit;
+    color:var(--ink);
+    outline:none;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{border-color:var(--violet);}
+  .field textarea{min-height:78px;resize:vertical;}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;}
+  .seg button{
+    flex:1;
+    min-width:88px;
+    padding:10px 8px;
+    border-radius:100px;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .seg button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .errmsg{color:#C0392B;font-size:12.5px;margin-top:8px;display:none;}
+
+  /* RESULT */
+  .tabbar{display:flex;background:var(--surface-2);border-radius:100px;padding:4px;margin:12px 0 16px;}
+  .tabbar button{
+    flex:1;border:none;background:transparent;padding:9px 4px;border-radius:100px;
+    font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;
+  }
+  .tabbar button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+  .resultcard{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:20px;
+    box-shadow:var(--shadow);
+  }
+  .resultcard .tag{
+    display:inline-block;font-size:11.5px;font-weight:700;
+    padding:4px 10px;border-radius:100px;margin-bottom:12px;
+  }
+  .tag-aman{background:var(--green-soft);color:var(--green);}
+  .tag-tegas{background:#FDECEA;color:#C0392B;}
+  .tag-santai{background:var(--violet-soft);color:var(--violet);}
+  .resulttext{
+    font-size:14.5px;
+    line-height:1.65;
+    white-space:pre-wrap;
+    color:var(--ink);
+  }
+  .actionbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+  .actionbar button{
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    border-radius:100px;
+    padding:9px 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .actionbar button.copybtn{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .hint-box{
+    margin-top:16px;
+    background:var(--surface-2);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+  }
+
+  /* IMPROVE / NEXT REPLY */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px;
+    box-shadow:var(--shadow);
+  }
+  .replyopt{
+    display:block;width:100%;text-align:left;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    margin-bottom:10px;
+    cursor:pointer;
+  }
+  .replyopt strong{display:block;font-size:14px;margin-bottom:2px;}
+  .replyopt span{font-size:12.5px;color:var(--ink-soft);}
+
+  /* BOTTOM NAV */
+  .bottomnav{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    max-width:480px;
+    margin:0 auto;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    display:flex;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    z-index:20;
+  }
+  .navbtn{
+    flex:1;
+    background:none;border:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-size:10.5px;font-weight:600;color:var(--ink-soft);
+    padding:6px 0;
+    font-family:inherit;
+  }
+  .navbtn .ic{font-size:19px;}
+  .navbtn.active{color:var(--violet);}
+
+  .toast{
+    position:fixed;
+    left:50%;bottom:96px;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;
+    padding:10px 18px;border-radius:100px;
+    font-size:13px;font-weight:600;
+    opacity:0;pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;
+    z-index:50;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .assumptionnote{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    margin-top:14px;
+    line-height:1.5;
+  }
+  textarea.rawinput{min-height:110px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <button class="backbtn" id="backBtn" onclick="goBack()">←</button>
+    <div class="brand"><span class="dot"></span>HR Talk</div>
+  </div>
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="hero">
+      <span class="kicker">Buat pekerja &amp; fresh grad Indonesia</span>
+      <h1>Bingung mau ngomong apa ke HR?</h1>
+      <p>Tinggal pilih situasinya, isi form singkat, HR Talk susunin pesannya buat kamu.</p>
+      <div class="cta-row">
+        <button class="btn btn-primary" onclick="goTo('tools')">Mulai bikin pesan</button>
+        <button class="btn btn-ghost-dark" onclick="goTo('improve')">Improve pesan</button>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>Paling sering dicari</h2>
+      <a onclick="goTo('tools')">Lihat semua</a>
+    </div>
+    <div class="quickgrid" id="quickGrid"></div>
+
+    <div class="section-head"><h2>Tools lain</h2></div>
+    <div class="toolbox-row">
+      <div class="toolbox-card" onclick="goTo('improve')">
+        <span class="emoji">✍️</span>
+        <h3>Improve my message</h3>
+        <p>Punya draft sendiri? Rapikan jadi lebih profesional.</p>
+      </div>
+      <div class="toolbox-card" onclick="goTo('nextreply')">
+        <span class="emoji">💬</span>
+        <h3>What should I say next?</h3>
+        <p>Tempel balasan HR, dapat pilihan respons.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALL TOOLS -->
+  <section class="screen" id="screen-tools">
+    <h1 class="form-title">Pilih situasinya</h1>
+    <p class="form-sub">Semua kategori pesan yang bisa HR Talk bantu buatin.</p>
+    <div class="toolgrid" id="allToolsGrid"></div>
+  </section>
+
+  <!-- FORM -->
+  <section class="screen" id="screen-form">
+    <h1 class="form-title" id="formTitle">—</h1>
+    <p class="form-sub" id="formSub"></p>
+    <form id="dynamicForm" onsubmit="return handleGenerate(event)">
+      <div id="fieldsContainer"></div>
+
+      <div class="field">
+        <label>Gaya komunikasi</label>
+        <div class="seg" id="segGaya">
+          <button type="button" data-val="profesional" class="active">Profesional</button>
+          <button type="button" data-val="santai">Santai</button>
+          <button type="button" data-val="tegas">Tegas</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Mau dikirim lewat mana?</label>
+        <div class="seg" id="segMedia">
+          <button type="button" data-val="whatsapp" class="active">WhatsApp</button>
+          <button type="button" data-val="email">Email</button>
+          <button type="button" data-val="linkedin">LinkedIn</button>
+        </div>
+      </div>
+
+      <p class="errmsg" id="formErr">Yuk lengkapi dulu bagian yang wajib diisi ✍️</p>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">Generate pesan</button>
+    </form>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="screen-result">
+    <h1 class="form-title">Pesan kamu siap 🎉</h1>
+    <p class="form-sub">Pilih versi yang paling cocok, lalu tinggal copy.</p>
+    <div class="tabbar" id="resultTabs">
+      <button data-v="aman" class="active" onclick="switchVariant('aman')">Paling aman</button>
+      <button data-v="tegas" onclick="switchVariant('tegas')">Lebih tegas</button>
+      <button data-v="santai" onclick="switchVariant('santai')">Lebih santai</button>
+    </div>
+    <div class="resultcard">
+      <span class="tag tag-aman" id="resultTag">Paling aman</span>
+      <div class="resulttext" id="resultText">—</div>
+      <div class="actionbar">
+        <button class="copybtn" onclick="copyResult()">📋 Copy</button>
+        <button onclick="regenerate()">🔁 Regenerate</button>
+        <button onclick="adjustResult('polite')">🙏 More polite</button>
+        <button onclick="adjustResult('confident')">💪 More confident</button>
+        <button onclick="adjustResult('shorter')">✂️ Shorter</button>
+      </div>
+    </div>
+    <div class="hint-box" id="resultHint"></div>
+    <div class="assumptionnote">⚠️ Versi awal: teks dibuat pakai template, bukan model AI, jadi cek ulang detail angka &amp; nama sebelum dikirim ya.</div>
+  </section>
+
+  <!-- IMPROVE MY MESSAGE -->
+  <section class="screen" id="screen-improve">
+    <h1 class="form-title">Improve my message</h1>
+    <p class="form-sub">Tulis draft pesan kamu apa adanya, biar HR Talk rapikan tanpa ubah maksud kamu.</p>
+    <div class="card">
+      <div class="field" style="margin-bottom:10px;">
+        <label>Draft pesan kamu</label>
+        <textarea class="rawinput" id="rawMessage" placeholder="Contoh: Pak saya mau minta gaji 8 juta karena menurut saya kerjaan saya banyak."></textarea>
+      </div>
+      <div class="field">
+        <label>Gaya hasil akhir</label>
+        <div class="seg" id="segImproveTone">
+          <button type="button" data-val="profesional" class="active">Profesional</button>
+          <button type="button" data-val="santai">Santai</button>
+          <button type="button" data-val="tegas">Tegas</button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="runImprove()">Perbaiki pesan ini</button>
+    </div>
+    <div class="resultcard" id="improveResultWrap" style="margin-top:16px;display:none;">
+      <span class="tag tag-santai">Hasil improve</span>
+      <div class="resulttext" id="improveResultText">—</div>
+      <div class="actionbar">
+        <button class="copybtn" onclick="copyImprove()">📋 Copy</button>
+        <button onclick="runImprove()">🔁 Regenerate</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT SHOULD I SAY NEXT -->
+  <section class="screen" id="screen-nextreply">
+    <h1 class="form-title">What should I say next?</h1>
+    <p class="form-sub">Tempel balasan dari HR, HR Talk kasih beberapa opsi balasan.</p>
+    <div class="card">
+      <div class="field" style="margin-bottom:10px;">
+        <label>Balasan HR <span class="opt">(paste di sini)</span></label>
+        <textarea class="rawinput" id="hrReply" placeholder="Contoh: Untuk angka 8 juta sepertinya belum bisa karena budget kami hanya 7 juta."></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="runNextReply()">Lihat pilihan respons</button>
+    </div>
+    <div id="nextReplyOptions" style="margin-top:16px;"></div>
+    <div class="resultcard" id="nextReplyResultWrap" style="margin-top:14px;display:none;">
+      <span class="tag tag-tegas" id="nextReplyTag">Respons</span>
+      <div class="resulttext" id="nextReplyText">—</div>
+      <div class="actionbar">
+        <button class="copybtn" onclick="copyNextReply()">📋 Copy</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="bottomnav">
+  <button class="navbtn active" id="nav-home" onclick="goTo('home')"><span class="ic">🏠</span>Beranda</button>
+  <button class="navbtn" id="nav-tools" onclick="goTo('tools')"><span class="ic">🗂️</span>Semua Tools</button>
+  <button class="navbtn" id="nav-improve" onclick="goTo('improve')"><span class="ic">✍️</span>Improve</button>
+  <button class="navbtn" id="nav-nextreply" onclick="goTo('nextreply')"><span class="ic">💬</span>Next Reply</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   HR TALK — client-side only, template-based generation.
+   No backend, no external AI call: everything below is rule
+   based JS so it runs fully offline in the browser.
+   ============================================================ */
+
+/* ---------- 1. SITUATIONS + DYNAMIC FIELD CONFIG ---------- */
+const SITUATIONS = [
+  {
+    id:'negosiasi_gaji', emoji:'💰', label:'Negosiasi gaji',
+    blurb:'Nego angka offer dari perusahaan',
+    fields:[
+      {key:'posisi', label:'Posisi yang dilamar', type:'text', placeholder:'Contoh: Social Media Specialist', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'gaji_sekarang', label:'Gaji sekarang', type:'text', placeholder:'Contoh: 6 juta', required:false},
+      {key:'offer_perusahaan', label:'Offer dari perusahaan', type:'text', placeholder:'Contoh: 7 juta', required:true},
+      {key:'target_gaji', label:'Target gaji kamu', type:'text', placeholder:'Contoh: 8.5 juta', required:true},
+      {key:'pengalaman', label:'Pengalaman kerja', type:'text', placeholder:'Contoh: 2 tahun di bidang yang sama', required:false},
+      {key:'alasan', label:'Alasan minta angka segitu', type:'textarea', placeholder:'Contoh: sesuai riset pasar, skill spesifik, dll', required:true},
+    ]
+  },
+  {
+    id:'follow_up_interview', emoji:'📩', label:'Follow up interview',
+    blurb:'Nanya kelanjutan proses interview',
+    fields:[
+      {key:'posisi', label:'Posisi yang diinterview', type:'text', placeholder:'Contoh: Content Writer', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'nama_hr', label:'Nama HR/recruiter', type:'text', placeholder:'Opsional', required:false},
+      {key:'tanggal_interview', label:'Kapan interviewnya', type:'text', placeholder:'Contoh: Senin, 8 September', required:true},
+    ]
+  },
+  {
+    id:'tanya_hasil_interview', emoji:'⏳', label:'Menanyakan hasil interview',
+    blurb:'Tanyakan hasil setelah interview',
+    fields:[
+      {key:'posisi', label:'Posisi yang diinterview', type:'text', placeholder:'Contoh: Data Analyst', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'tanggal_interview', label:'Kapan interviewnya', type:'text', placeholder:'Contoh: minggu lalu, 2 Sept', required:true},
+    ]
+  },
+  {
+    id:'counter_offer', emoji:'📈', label:'Counter offer',
+    blurb:'Ajukan angka balik dari offer yang diberikan',
+    fields:[
+      {key:'posisi', label:'Posisi', type:'text', placeholder:'Contoh: Product Designer', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'offer_diterima', label:'Offer yang diberikan', type:'text', placeholder:'Contoh: 9 juta', required:true},
+      {key:'target_gaji', label:'Counter offer kamu', type:'text', placeholder:'Contoh: 10.5 juta', required:true},
+      {key:'alasan', label:'Alasan counter', type:'textarea', placeholder:'Contoh: ada offer lain, sesuai riset pasar, dll', required:true},
+    ]
+  },
+  {
+    id:'minta_kenaikan_gaji', emoji:'🚀', label:'Meminta kenaikan gaji',
+    blurb:'Ajukan kenaikan gaji ke atasan',
+    fields:[
+      {key:'posisi', label:'Posisi kamu sekarang', type:'text', placeholder:'Contoh: Marketing Executive', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'gaji_sekarang', label:'Gaji sekarang', type:'text', placeholder:'Contoh: 7 juta', required:false},
+      {key:'target_gaji', label:'Target gaji baru', type:'text', placeholder:'Contoh: 9 juta', required:true},
+      {key:'lama_bekerja', label:'Sudah berapa lama kerja', type:'text', placeholder:'Contoh: 1.5 tahun', required:true},
+      {key:'pencapaian', label:'Pencapaian/kontribusi kamu', type:'textarea', placeholder:'Contoh: naikin engagement 40%, pegang 2 proyek besar', required:true},
+    ]
+  },
+  {
+    id:'minta_wfh', emoji:'🏠', label:'Meminta WFH',
+    blurb:'Minta kerja dari rumah / remote',
+    fields:[
+      {key:'posisi', label:'Posisi kamu', type:'text', placeholder:'Opsional', required:false},
+      {key:'frekuensi', label:'Berapa hari yang diminta', type:'text', placeholder:'Contoh: 2 hari/minggu', required:true},
+      {key:'alasan', label:'Alasan minta WFH', type:'textarea', placeholder:'Contoh: lebih fokus, ada keperluan pribadi', required:true},
+    ]
+  },
+  {
+    id:'minta_cuti', emoji:'🌴', label:'Meminta cuti',
+    blurb:'Ajukan cuti ke atasan/HR',
+    fields:[
+      {key:'nama_atasan', label:'Nama atasan/HR', type:'text', placeholder:'Opsional', required:false},
+      {key:'tanggal_mulai', label:'Cuti mulai tanggal', type:'text', placeholder:'Contoh: 20 September', required:true},
+      {key:'tanggal_selesai', label:'Sampai tanggal', type:'text', placeholder:'Contoh: 22 September', required:true},
+      {key:'alasan', label:'Alasan cuti', type:'textarea', placeholder:'Contoh: acara keluarga, liburan, urusan pribadi', required:false},
+    ]
+  },
+  {
+    id:'tolak_lembur', emoji:'🙅', label:'Menolak lembur',
+    blurb:'Tolak lembur dengan sopan',
+    fields:[
+      {key:'alasan', label:'Alasan tidak bisa lembur', type:'textarea', placeholder:'Contoh: ada janji lain, kondisi tidak fit', required:true},
+      {key:'alternatif', label:'Alternatif yang bisa ditawarkan', type:'text', placeholder:'Contoh: dikerjakan besok pagi', required:false},
+    ]
+  },
+  {
+    id:'resign', emoji:'📝', label:'Resign',
+    blurb:'Sampaikan pengunduran diri',
+    fields:[
+      {key:'posisi', label:'Posisi kamu', type:'text', placeholder:'Contoh: HR Officer', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'tanggal_terakhir', label:'Tanggal terakhir kerja', type:'text', placeholder:'Contoh: 15 Oktober 2026', required:true},
+      {key:'alasan', label:'Alasan resign', type:'textarea', placeholder:'Opsional, boleh dikosongin', required:false},
+    ]
+  },
+  {
+    id:'tanya_benefit', emoji:'🎁', label:'Menanyakan benefit',
+    blurb:'Tanya benefit/fasilitas kerja',
+    fields:[
+      {key:'posisi', label:'Posisi yang dilamar/dijalani', type:'text', placeholder:'Contoh: Finance Staff', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Opsional', required:false},
+      {key:'jenis_benefit', label:'Benefit yang ingin ditanyakan', type:'text', placeholder:'Contoh: asuransi kesehatan, BPJS, cuti', required:false},
+    ]
+  },
+  {
+    id:'tanya_status_lamaran', emoji:'📄', label:'Menanyakan status lamaran',
+    blurb:'Tanya progress lamaran kerja',
+    fields:[
+      {key:'posisi', label:'Posisi yang dilamar', type:'text', placeholder:'Contoh: UI/UX Designer', required:true},
+      {key:'perusahaan', label:'Nama perusahaan', type:'text', placeholder:'Contoh: PT Maju Bersama', required:true},
+      {key:'tanggal_apply', label:'Kapan apply/submit lamaran', type:'text', placeholder:'Contoh: 2 minggu lalu', required:true},
+    ]
+  },
+  {
+    id:'alasan_pindah_kerja', emoji:'🔄', label:'Menjelaskan alasan pindah kerja',
+    blurb:'Jawab pertanyaan "kenapa pindah kerja?"',
+    fields:[
+      {key:'perusahaan_lama', label:'Perusahaan/posisi sebelumnya', type:'text', placeholder:'Opsional', required:false},
+      {key:'alasan_utama', label:'Alasan utama pindah', type:'textarea', placeholder:'Contoh: cari jenjang karier lebih jelas, ganti bidang', required:true},
+    ]
+  },
+  {
+    id:'minta_ubah_kontrak', emoji:'📃', label:'Meminta perubahan kontrak',
+    blurb:'Ajukan perubahan isi kontrak kerja',
+    fields:[
+      {key:'jenis_perubahan', label:'Perubahan yang diminta', type:'text', placeholder:'Contoh: perpanjangan kontrak, perubahan jam kerja', required:true},
+      {key:'alasan', label:'Alasan perubahan', type:'textarea', placeholder:'Contoh: sudah dapat tanggung jawab lebih besar', required:true},
+    ]
+  },
+];
+
+const byId = id => SITUATIONS.find(s=>s.id===id);
+
+/* ---------- 2. SMALL HELPERS ---------- */
+function esc(s){ return (s||'').toString(); }
+
+function fmtAngka(v){
+  if(!v) return v;
+  const cleaned = v.trim();
+  if(/^\d+(\.\d+)?$/.test(cleaned)){
+    const n = Number(cleaned);
+    if(n < 1000) return 'Rp' + n + ' juta';
+    return 'Rp' + n.toLocaleString('id-ID');
+  }
+  return cleaned;
+}
+
+function greeting(media, tone, namaHr){
+  const who = namaHr ? namaHr : (tone==='santai' ? 'kak' : 'Bapak/Ibu');
+  if(media==='whatsapp'){
+    if(tone==='santai') return `Halo ${who}, izin ganggu waktunya sebentar ya`;
+    if(tone==='tegas') return `Selamat pagi/siang, izin menyampaikan sesuatu`;
+    return `Selamat pagi/siang ${namaHr? namaHr : ''}, mohon izin menyampaikan sesuatu`;
+  }
+  if(media==='email'){
+    return `Selamat pagi/siang${namaHr? ' '+namaHr: ''},`;
+  }
+  // linkedin
+  return `Halo${namaHr? ' '+namaHr: ''}, semoga sehat selalu.`;
+}
+
+function closing(media, tone){
+  if(media==='whatsapp'){
+    if(tone==='santai') return `Ditunggu kabarnya ya, makasih banyak 🙏`;
+    if(tone==='tegas') return `Mohon konfirmasinya, terima kasih.`;
+    return `Mohon informasinya ya, terima kasih banyak sebelumnya.`;
+  }
+  if(media==='email'){
+    return `Mohon informasi dan arahannya. Terima kasih atas waktu dan perhatiannya.\n\nSalam hormat,`;
+  }
+  return `Terima kasih banyak sebelumnya, saya tunggu kabar baiknya.`;
+}
+
+function wrap(media, tone, core, namaHr){
+  const g = greeting(media, tone, namaHr);
+  const c = closing(media, tone);
+  if(media==='email'){
+    return `${g}\n\n${core}\n\n${c}`;
+  }
+  return `${g}. ${core} ${c}`;
+}
+
+function maybeEmoji(tone, text){
+  if(tone!=='santai') return text.replace(/\s?[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/ {2,}/g,' ');
+  return text;
+}
+
+/* ---------- 3. CORE MESSAGE BUILDERS PER SITUATION ---------- */
+// each returns { aman, tegas, santai } — core sentence(s), media-agnostic.
+const CORE = {
+  negosiasi_gaji(d){
+    const offer = fmtAngka(d.offer_perusahaan), target = fmtAngka(d.target_gaji);
+    const pengalaman = d.pengalaman ? ` dengan pengalaman ${d.pengalaman}` : '';
+    const alasan = d.alasan ? d.alasan.trim().replace(/\.$/,'') : '';
+    return {
+      aman: `Saya sangat senang menerima informasi mengenai posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}. Setelah dipertimbangkan${pengalaman}, apakah memungkinkan untuk mendiskusikan penyesuaian gaji dari ${offer} menjadi kisaran ${target}? ${alasan? 'Ini mengingat '+alasan+'.':''}`,
+      tegas: `Terima kasih atas offer untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}. Namun berdasarkan ${alasan||'pengalaman dan kualifikasi saya'}${pengalaman}, saya ingin mengajukan angka ${target} sebagai gaji yang lebih sesuai dibanding ${offer}.`,
+      santai: `Makasih banyak buat offernya di posisi ${d.posisi}! Cuma mau nanya nih, kira-kira masih bisa dinaikin nggak dari ${offer} ke sekitar ${target}? ${alasan? 'Soalnya '+alasan+'.':''}`,
+    };
+  },
+  follow_up_interview(d){
+    const namaHr = d.nama_hr;
+    return {
+      aman: `Saya ${namaHr? '':''}ingin menanyakan kabar terkait proses interview untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} pada ${d.tanggal_interview}. Mohon informasi mengenai tahap selanjutnya jika berkenan.`,
+      tegas: `Saya ingin follow up mengenai kelanjutan proses rekrutmen untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} setelah interview pada ${d.tanggal_interview}. Mohon update prosesnya sampai sejauh mana.`,
+      santai: `Mau follow up soal interview aku buat posisi ${d.posisi} tanggal ${d.tanggal_interview} kemarin. Ada update nggak ya soal prosesnya?`,
+    };
+  },
+  tanya_hasil_interview(d){
+    return {
+      aman: `Saya ingin menanyakan hasil interview untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} yang berlangsung pada ${d.tanggal_interview}. Mohon informasinya jika sudah ada keputusan.`,
+      tegas: `Sudah cukup lama sejak interview saya untuk posisi ${d.posisi} pada ${d.tanggal_interview}, saya ingin menanyakan kepastian hasilnya.`,
+      santai: `Halo, mau nanya soal hasil interview aku kemarin tanggal ${d.tanggal_interview} buat posisi ${d.posisi}. Udah ada kabar belum ya?`,
+    };
+  },
+  counter_offer(d){
+    const offer = fmtAngka(d.offer_diterima), target = fmtAngka(d.target_gaji);
+    const alasan = d.alasan? d.alasan.trim().replace(/\.$/,''):'';
+    return {
+      aman: `Terima kasih atas offer untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} sebesar ${offer}. Apabila memungkinkan, saya ingin mengajukan angka ${target}, mengingat ${alasan||'kualifikasi dan pengalaman yang saya miliki'}.`,
+      tegas: `Saya menghargai offer sebesar ${offer} untuk posisi ${d.posisi}. Namun mengingat ${alasan||'kondisi saya saat ini'}, saya mengajukan counter offer di angka ${target}.`,
+      santai: `Makasih ya buat offernya di angka ${offer}! Boleh nggak kalau aku counter di ${target}? Soalnya ${alasan||'ada pertimbangan lain dari sisi aku'}.`,
+    };
+  },
+  minta_kenaikan_gaji(d){
+    const now = d.gaji_sekarang? fmtAngka(d.gaji_sekarang):'';
+    const target = fmtAngka(d.target_gaji);
+    const pencapaian = d.pencapaian? d.pencapaian.trim().replace(/\.$/,''):'kontribusi saya selama ini';
+    return {
+      aman: `Setelah bekerja selama ${d.lama_bekerja} sebagai ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}, saya ingin mendiskusikan kemungkinan penyesuaian gaji${now? ' dari '+now:''} menjadi ${target}, mengingat ${pencapaian}.`,
+      tegas: `Saya ingin mengajukan kenaikan gaji${now? ' dari '+now:''} menjadi ${target} setelah ${d.lama_bekerja} bekerja sebagai ${d.posisi}, mengingat kontribusi saya yaitu ${pencapaian}.`,
+      santai: `Mau ngobrol soal gaji nih. Udah ${d.lama_bekerja} aku di posisi ${d.posisi}, dan udah banyak kontribusi kayak ${pencapaian}. Kira-kira bisa nggak ya dinaikin ke ${target}?`,
+    };
+  },
+  minta_wfh(d){
+    const posisi = d.posisi? ` sebagai ${d.posisi}`:'';
+    return {
+      aman: `Saya ingin mengajukan izin untuk bekerja dari rumah (WFH) sebanyak ${d.frekuensi}${posisi}, dengan alasan ${d.alasan}. Saya pastikan produktivitas tetap terjaga seperti biasa.`,
+      tegas: `Saya mengajukan pengaturan kerja WFH ${d.frekuensi}${posisi}. Alasan utamanya adalah ${d.alasan}, dan saya siap berkoordinasi agar pekerjaan tidak terganggu.`,
+      santai: `Boleh nggak ya kalau aku WFH ${d.frekuensi}? Soalnya ${d.alasan}. Kerjaan tetap aku pastikan jalan seperti biasa kok.`,
+    };
+  },
+  minta_cuti(d){
+    const alasan = d.alasan? ` untuk keperluan ${d.alasan}`:'';
+    return {
+      aman: `Saya ingin mengajukan cuti pada tanggal ${d.tanggal_mulai} sampai ${d.tanggal_selesai}${alasan}. Saya akan pastikan pekerjaan sudah di-handle sebelum tanggal tersebut.`,
+      tegas: `Saya mengajukan cuti mulai ${d.tanggal_mulai} hingga ${d.tanggal_selesai}${alasan}. Mohon persetujuannya agar saya bisa mengatur jadwal lebih lanjut.`,
+      santai: `Mau izin cuti tanggal ${d.tanggal_mulai} sampai ${d.tanggal_selesai} ya${alasan}. Kerjaan bakal aku beresin dulu sebelum itu.`,
+    };
+  },
+  tolak_lembur(d){
+    const alt = d.alternatif? ` Sebagai gantinya, ${d.alternatif}.`:'';
+    return {
+      aman: `Mohon izin, untuk lembur kali ini sepertinya saya belum bisa ikut karena ${d.alasan}.${alt}`,
+      tegas: `Untuk lembur kali ini saya tidak bisa berpartisipasi karena ${d.alasan}.${alt}`,
+      santai: `Duh sori, kayaknya aku nggak bisa lembur kali ini karena ${d.alasan}.${alt}`,
+    };
+  },
+  resign(d){
+    const alasan = d.alasan? ` Alasan saya adalah ${d.alasan}.`:'';
+    return {
+      aman: `Dengan ini saya bermaksud menyampaikan pengunduran diri dari posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}, terhitung efektif tanggal ${d.tanggal_terakhir}.${alasan} Terima kasih atas kesempatan yang telah diberikan selama ini.`,
+      tegas: `Saya mengajukan pengunduran diri dari posisi ${d.posisi}, efektif per tanggal ${d.tanggal_terakhir}.${alasan} Mohon diproses sesuai prosedur yang berlaku.`,
+      santai: `Aku mau kasih tau kalau aku resign dari posisi ${d.posisi}, terakhir kerja tanggal ${d.tanggal_terakhir} ya.${alasan} Makasih banyak buat kesempatannya selama ini.`,
+    };
+  },
+  tanya_benefit(d){
+    const benefit = d.jenis_benefit? d.jenis_benefit : 'benefit yang berlaku';
+    return {
+      aman: `Saya ingin menanyakan lebih lanjut mengenai ${benefit} untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}, agar saya dapat mempertimbangkan dengan lebih matang.`,
+      tegas: `Sebelum melanjutkan proses, saya ingin memastikan detail terkait ${benefit} untuk posisi ${d.posisi}.`,
+      santai: `Mau nanya dong soal ${benefit} buat posisi ${d.posisi}, biar aku bisa pertimbangin juga.`,
+    };
+  },
+  tanya_status_lamaran(d){
+    return {
+      aman: `Saya ingin menanyakan status lamaran saya untuk posisi ${d.posisi} di ${d.perusahaan} yang saya kirimkan pada ${d.tanggal_apply}. Mohon informasinya jika berkenan.`,
+      tegas: `Saya sudah mengirimkan lamaran untuk posisi ${d.posisi} di ${d.perusahaan} sejak ${d.tanggal_apply} dan ingin menanyakan kepastian statusnya.`,
+      santai: `Halo, mau nanya progress lamaran aku buat posisi ${d.posisi} di ${d.perusahaan} yang aku kirim ${d.tanggal_apply}. Ada update nggak ya?`,
+    };
+  },
+  alasan_pindah_kerja(d){
+    const dari = d.perusahaan_lama? ` dari ${d.perusahaan_lama}`:'';
+    return {
+      aman: `Alasan utama saya pindah kerja${dari} adalah ${d.alasan_utama}. Saya merasa ini menjadi langkah yang tepat untuk perkembangan karier saya ke depannya.`,
+      tegas: `Saya memutuskan untuk pindah${dari} karena ${d.alasan_utama}, dan saya yakin ini keputusan yang tepat untuk karier saya.`,
+      santai: `Aku pindah kerja${dari} soalnya ${d.alasan_utama}. Menurutku ini langkah yang pas buat aku ke depannya.`,
+    };
+  },
+  minta_ubah_kontrak(d){
+    return {
+      aman: `Saya ingin mengajukan diskusi terkait ${d.jenis_perubahan} pada kontrak kerja saya, mengingat ${d.alasan}.`,
+      tegas: `Saya ingin mengajukan ${d.jenis_perubahan} secara resmi pada kontrak kerja saya karena ${d.alasan}. Mohon dapat segera ditindaklanjuti.`,
+      santai: `Mau ngobrolin soal ${d.jenis_perubahan} di kontrak kerja aku nih, soalnya ${d.alasan}. Kira-kira bisa dibahas nggak ya?`,
+    };
+  },
+};
+
+/* ---------- 4. STATE ---------- */
+let state = {
+  history:['home'],
+  currentSituation:null,
+  currentVariant:'aman',
+  formValues:{},
+  gaya:'profesional',
+  media:'whatsapp',
+  namaHr:'',
+  results:{aman:'',tegas:'',santai:''},
+  regenSeed:0,
+};
+
+/* ---------- 5. NAVIGATION ---------- */
+function goTo(screen, opts){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+screen).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+  const navMap = {home:'nav-home', tools:'nav-tools', improve:'nav-improve', nextreply:'nav-nextreply'};
+  if(navMap[screen]) document.getElementById(navMap[screen]).classList.add('active');
+  document.getElementById('backBtn').classList.toggle('show', screen!=='home');
+  window.scrollTo(0,0);
+  if(!opts || !opts.silent){
+    state.history.push(screen);
+  }
+}
+
+function goBack(){
+  state.history.pop();
+  const prev = state.history.length? state.history[state.history.length-1] : 'home';
+  goTo(prev, {silent:true});
+}
+
+function openSituation(id){
+  state.currentSituation = id;
+  buildForm(id);
+  goTo('form');
+}
+
+/* ---------- 6. RENDER HOME + ALL TOOLS ---------- */
+function renderGrids(){
+  const quick = document.getElementById('quickGrid');
+  const featured = ['negosiasi_gaji','follow_up_interview','minta_kenaikan_gaji','resign'];
+  quick.innerHTML = featured.map(id=>{
+    const s = byId(id);
+    return `<div class="qcard" onclick="openSituation('${s.id}')">
+      <span class="emoji">${s.emoji}</span>
+      <span class="label">${s.label}</span>
+    </div>`;
+  }).join('');
+
+  const all = document.getElementById('allToolsGrid');
+  all.innerHTML = SITUATIONS.map(s=>`
+    <div class="toolrow" onclick="openSituation('${s.id}')">
+      <div class="emoji">${s.emoji}</div>
+      <div class="txt"><strong>${s.label}</strong><span>${s.blurb}</span></div>
+      <div class="chev">›</div>
+    </div>
+  `).join('');
+}
+
+/* ---------- 7. DYNAMIC FORM ---------- */
+function buildForm(id){
+  const s = byId(id);
+  document.getElementById('formTitle').textContent = s.emoji + ' ' + s.label;
+  document.getElementById('formSub').textContent = 'Isi detailnya, makin lengkap makin pas hasilnya.';
+  const container = document.getElementById('fieldsContainer');
+  container.innerHTML = s.fields.map(f=>{
+    const optTag = f.required? '' : '<span class="opt"> (opsional)</span>';
+    if(f.type==='textarea'){
+      return `<div class="field">
+        <label>${f.label}${optTag}</label>
+        <textarea data-key="${f.key}" placeholder="${f.placeholder||''}"></textarea>
+      </div>`;
+    }
+    return `<div class="field">
+      <label>${f.label}${optTag}</label>
+      <input type="text" data-key="${f.key}" placeholder="${f.placeholder||''}">
+    </div>`;
+  }).join('');
+
+  // restore previous seg selections default
+  resetSeg('segGaya','profesional');
+  resetSeg('segMedia','whatsapp');
+  document.getElementById('formErr').style.display='none';
+}
+
+function resetSeg(id, def){
+  const wrap = document.getElementById(id);
+  [...wrap.children].forEach(b=>b.classList.toggle('active', b.dataset.val===def));
+}
+
+// segmented control click handling (event delegation)
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.seg button');
+  if(!btn) return;
+  const wrap = btn.parentElement;
+  [...wrap.children].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+function getSegVal(id){
+  const wrap = document.getElementById(id);
+  const active = wrap.querySelector('button.active');
+  return active? active.dataset.val : wrap.children[0].dataset.val;
+}
+
+function handleGenerate(e){
+  e.preventDefault();
+  const s = byId(state.currentSituation);
+  const values = {};
+  let missing = false;
+  document.querySelectorAll('#fieldsContainer [data-key]').forEach(el=>{
+    values[el.dataset.key] = el.value.trim();
+  });
+  s.fields.forEach(f=>{
+    if(f.required && !values[f.key]) missing = true;
+  });
+  const errEl = document.getElementById('formErr');
+  if(missing){
+    errEl.style.display='block';
+    return false;
+  }
+  errEl.style.display='none';
+
+  state.formValues = values;
+  state.gaya = getSegVal('segGaya');
+  state.media = getSegVal('segMedia');
+  state.namaHr = values.nama_hr || '';
+
+  generateAll();
+  goTo('result');
+  return false;
+}
+
+/* ---------- 8. GENERATE RESULTS ---------- */
+function generateAll(){
+  const s = byId(state.currentSituation);
+  const core = CORE[s.id](state.formValues);
+  ['aman','tegas','santai'].forEach(tone=>{
+    let txt = wrap(state.media, tone, core[tone].trim(), state.namaHr);
+    txt = maybeEmoji(tone, txt);
+    if(tone==='santai') txt = addEmojis(txt);
+    state.results[tone] = txt.replace(/\s{2,}/g,' ').trim();
+  });
+  // highlight the tone the user picked as the initially shown tab
+  state.currentVariant = state.gaya==='santai'? 'santai' : state.gaya==='tegas'? 'tegas' : 'aman';
+  renderResult();
+}
+
+function addEmojis(txt){
+  if(/lembur|resign|kontrak/.test(txt.toLowerCase())) return txt; // keep serious topics lighter
+  if(!/[\u{1F300}-\u{1FAFF}]/u.test(txt)){
+    return txt + ' 😊';
+  }
+  return txt;
+}
+
+function renderResult(){
+  document.querySelectorAll('#resultTabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v===state.currentVariant);
+  });
+  const tagMap = {aman:['Paling aman','tag-aman'], tegas:['Lebih tegas','tag-tegas'], santai:['Lebih santai','tag-santai']};
+  const [label, cls] = tagMap[state.currentVariant];
+  const tag = document.getElementById('resultTag');
+  tag.textContent = label;
+  tag.className = 'tag '+cls;
+  document.getElementById('resultText').textContent = state.results[state.currentVariant];
+
+  const hints = {
+    whatsapp:'Dikirim via WhatsApp — nada dibuat lebih ringkas dan nggak terlalu formal.',
+    email:'Dikirim via Email — sudah pakai pembuka & penutup yang lebih formal.',
+    linkedin:'Dikirim via LinkedIn — nada tetap sopan tapi tidak sekaku email resmi.',
+  };
+  document.getElementById('resultHint').textContent = '📌 ' + hints[state.media];
+}
+
+function switchVariant(v){
+  state.currentVariant = v;
+  renderResult();
+}
+
+/* ---------- 9. RESULT ACTIONS ---------- */
+function copyResult(){
+  copyText(state.results[state.currentVariant]);
+}
+
+function regenerate(){
+  // lightweight variation: rotate greeting/closing phrasing so it doesn't feel identical
+  state.regenSeed++;
+  const s = byId(state.currentSituation);
+  const core = CORE[s.id](state.formValues);
+  const tone = state.currentVariant;
+  const altGreetings = {
+    whatsapp: ['Halo, izin nanya sebentar', 'Permisi, boleh minta waktunya sebentar', 'Halo, mau menyampaikan sesuatu'],
+    email: ['Selamat pagi/siang,', 'Dengan hormat,', 'Halo, semoga sehat selalu.'],
+    linkedin: ['Halo, semoga harinya menyenangkan.', 'Halo, senang bisa terhubung kembali.', 'Halo, apa kabar?'],
+  };
+  const pool = altGreetings[state.media];
+  const g = pool[state.regenSeed % pool.length];
+  let body = core[tone].trim();
+  let txt = state.media==='email' ? `${g}\n\n${body}\n\n${closing(state.media, tone)}` : `${g}. ${body} ${closing(state.media, tone)}`;
+  txt = maybeEmoji(tone, txt);
+  if(tone==='santai') txt = addEmojis(txt);
+  state.results[tone] = txt.replace(/\s{2,}/g,' ').trim();
+  renderResult();
+  showToast('Versi baru dibuat 🔁');
+}
+
+function adjustResult(mode){
+  const tone = state.currentVariant;
+  let txt = state.results[tone];
+  if(mode==='polite'){
+    txt = txt
+      .replace(/\bsaya ingin\b/gi,'kalau berkenan, saya ingin')
+      .replace(/\bmohon\b/gi,'mohon dengan hormat')
+      .replace(/\bakan\b/gi,'insyaAllah akan');
+    if(!/mohon maaf/i.test(txt)) txt = 'Mohon maaf mengganggu waktunya. ' + txt;
+  } else if(mode==='confident'){
+    txt = txt
+      .replace(/kalau (memungkinkan|berkenan|boleh),?\s*/gi,'')
+      .replace(/\bsepertinya\b/gi,'')
+      .replace(/\bmungkin\b/gi,'')
+      .replace(/\bizin (menyampaikan|nanya|bertanya)\b/gi,'ingin menyampaikan')
+      .replace(/\s{2,}/g,' ');
+  } else if(mode==='shorter'){
+    const sentences = txt.split(/(?<=[.!?])\s+/).filter(Boolean);
+    txt = sentences.slice(0, Math.max(2, Math.ceil(sentences.length/2))).join(' ');
+  }
+  state.results[tone] = txt.trim();
+  renderResult();
+  const labels = {polite:'Dibuat lebih sopan 🙏', confident:'Dibuat lebih percaya diri 💪', shorter:'Dipersingkat ✂️'};
+  showToast(labels[mode]);
+}
+
+/* ---------- 10. IMPROVE MY MESSAGE ---------- */
+const INFORMAL_DICT = [
+  [/\bgua\b|\bgue\b/gi,'saya'],
+  [/\baku\b/gi,'saya'],
+  [/\bgak\b|\bga\b|\bnggak\b|\benggak\b/gi,'tidak'],
+  [/\bkalo\b/gi,'kalau'],
+  [/\bpengen\b/gi,'ingin'],
+  [/\bmau\b/gi,'ingin'],
+  [/\bkerjaan\b/gi,'pekerjaan'],
+  [/\bbanget\b/gi,'sangat'],
+  [/\bnanya\b/gi,'menanyakan'],
+  [/\bdisuruh\b/gi,'diminta'],
+  [/\bbtw\b/gi,'oh iya'],
+  [/\bmakasih\b/gi,'terima kasih'],
+];
+
+function normalizeInformal(text){
+  let t = text;
+  INFORMAL_DICT.forEach(([re, rep])=>{ t = t.replace(re, rep); });
+  return t;
+}
+
+function runImprove(){
+  const raw = document.getElementById('rawMessage').value.trim();
+  const tone = getSegVal('segImproveTone');
+  if(!raw){
+    showToast('Tulis draft pesannya dulu ya ✍️');
+    return;
+  }
+  let cleaned = normalizeInformal(raw);
+  cleaned = cleaned.replace(/\s{2,}/g,' ').trim();
+  // remove leading sapaan words like "Pak" / "Bu" to reuse as target-of-address
+  let sapaan = '';
+  const sapaanMatch = cleaned.match(/^(Pak|Bu|Bapak|Ibu|Kak)\s*[, ]/i);
+  if(sapaanMatch){
+    sapaan = sapaanMatch[1];
+    cleaned = cleaned.slice(sapaanMatch[0].length);
+  }
+  cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+
+  // try to split main ask vs reason via " karena "
+  let mainPart = cleaned, reasonPart = '';
+  const karenaIdx = cleaned.toLowerCase().indexOf(' karena ');
+  if(karenaIdx > -1){
+    mainPart = cleaned.slice(0, karenaIdx);
+    reasonPart = cleaned.slice(karenaIdx + 8);
+  }
+  mainPart = mainPart.replace(/^saya\s+/i,'').replace(/[.,]\s*$/,'');
+  reasonPart = reasonPart.replace(/[.,]\s*$/,'');
+
+  const openers = {
+    profesional: `Selamat pagi/siang${sapaan? ' '+sapaan: ''}, izin menyampaikan,`,
+    santai: `Halo${sapaan? ' '+sapaan: ''}, izin cerita sedikit ya,`,
+    tegas: `Selamat pagi/siang${sapaan? ' '+sapaan: ''}, saya ingin menyampaikan secara langsung,`,
+  };
+  const closers = {
+    profesional: 'Mohon kiranya dapat dipertimbangkan. Terima kasih banyak.',
+    santai: 'Semoga bisa dipertimbangkan ya, makasih banyak sebelumnya 😊',
+    tegas: 'Mohon konfirmasi dan tindak lanjutnya. Terima kasih.',
+  };
+
+  let result = `${openers[tone]} saya ${mainPart}${reasonPart? ', mengingat '+reasonPart : ''}. ${closers[tone]}`;
+  result = result.replace(/\s{2,}/g,' ').trim();
+  if(tone!=='santai') result = result.replace(/😊/g,'');
+
+  document.getElementById('improveResultText').textContent = result;
+  document.getElementById('improveResultWrap').style.display='block';
+  state.lastImprove = result;
+}
+
+function copyImprove(){
+  copyText(state.lastImprove || document.getElementById('improveResultText').textContent);
+}
+
+/* ---------- 11. WHAT SHOULD I SAY NEXT ---------- */
+function extractAngka(text){
+  const m = text.match(/(\d+(?:[.,]\d+)?)\s*(juta|jt)/i);
+  if(!m) return null;
+  return parseFloat(m[1].replace(',','.'));
+}
+
+function runNextReply(){
+  const hr = document.getElementById('hrReply').value.trim();
+  if(!hr){
+    showToast('Tempel dulu balasan HR-nya ya 💬');
+    return;
+  }
+  const angka = extractAngka(hr);
+  const angkaTengah = angka? (angka + 0.5) : null;
+
+  const options = [
+    {
+      key:'accept',
+      title:'Terima aja',
+      desc:'Setuju dengan angka/penawaran yang diberikan HR.',
+      text: `Baik, saya bisa menerima${angka? ' angka '+angka+' juta tersebut':' penawaran tersebut'}. Terima kasih atas kesempatannya, saya siap melanjutkan proses selanjutnya.`
+    },
+    {
+      key:'negotiate',
+      title:'Coba nego lagi',
+      desc:'Ajukan angka tengah atau minta ruang diskusi lagi.',
+      text: angka
+        ? `Terima kasih infonya. Apakah masih ada ruang untuk mendekati angka ${angkaTengah} juta? Saya cukup fleksibel untuk mencari titik tengah yang nyaman untuk kedua pihak.`
+        : `Terima kasih infonya. Apakah masih ada ruang diskusi lebih lanjut? Saya terbuka untuk mencari titik tengah yang nyaman untuk kedua pihak.`
+    },
+    {
+      key:'benefit',
+      title:'Tanya benefit lain',
+      desc:'Kalau angka nggak bisa naik, tanya kompensasi lain.',
+      text: `Saya mengerti terkait batasan budget yang ada. Untuk menutupi selisihnya, apakah memungkinkan ada penyesuaian di sisi lain, seperti tunjangan, bonus, atau fleksibilitas kerja?`
+    },
+    {
+      key:'review',
+      title:'Minta review setelah probation',
+      desc:'Terima dulu, tapi minta evaluasi ulang nanti.',
+      text: `Baik, untuk saat ini saya bisa menerima${angka? ' angka '+angka+' juta':' penawaran ini'}. Apakah memungkinkan untuk dilakukan review gaji setelah masa probation saya selesai?`
+    },
+  ];
+
+  state.nextReplyOptions = options;
+  const wrap = document.getElementById('nextReplyOptions');
+  wrap.innerHTML = options.map(o=>`
+    <button type="button" class="replyopt" onclick="pickNextReply('${o.key}')">
+      <strong>${o.title}</strong>
+      <span>${o.desc}</span>
+    </button>
+  `).join('');
+  document.getElementById('nextReplyResultWrap').style.display='none';
+}
+
+function pickNextReply(key){
+  const opt = state.nextReplyOptions.find(o=>o.key===key);
+  document.getElementById('nextReplyTag').textContent = opt.title;
+  document.getElementById('nextReplyText').textContent = opt.text;
+  document.getElementById('nextReplyResultWrap').style.display='block';
+  state.lastNextReply = opt.text;
+}
+
+function copyNextReply(){
+  copyText(state.lastNextReply || document.getElementById('nextReplyText').textContent);
+}
+
+/* ---------- 12. MISC UTIL ---------- */
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>showToast('Disalin ke clipboard ✅')).catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); showToast('Disalin ke clipboard ✅'); }catch(e){ showToast('Gagal copy, coba manual ya'); }
+  document.body.removeChild(ta);
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ---------- 13. INIT ---------- */
+renderGrids();
+</script>
+</body>
+</html>
