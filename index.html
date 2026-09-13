@@ -248,6 +248,13 @@
   }
   .seg button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
   .errmsg{color:#C0392B;font-size:12.5px;margin-top:8px;display:none;}
+  .spinner{
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--border);border-top-color:var(--violet);
+    display:inline-block;animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #generateBtn:disabled{opacity:.6;cursor:not-allowed;}
 
   /* RESULT */
   .tabbar{display:flex;background:var(--surface-2);border-radius:100px;padding:4px;margin:12px 0 16px;}
@@ -423,11 +430,11 @@
       <div id="fieldsContainer"></div>
 
       <div class="field">
-        <label>Gaya komunikasi</label>
+        <label>Kecenderungan gaya</label>
         <div class="seg" id="segGaya">
-          <button type="button" data-val="profesional" class="active">Profesional</button>
-          <button type="button" data-val="santai">Santai</button>
-          <button type="button" data-val="tegas">Tegas</button>
+          <button type="button" data-val="safe" class="active">Aman</button>
+          <button type="button" data-val="confident">Percaya diri</button>
+          <button type="button" data-val="strategic">Strategis</button>
         </div>
       </div>
 
@@ -441,7 +448,11 @@
       </div>
 
       <p class="errmsg" id="formErr">Yuk lengkapi dulu bagian yang wajib diisi ✍️</p>
-      <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">Generate pesan</button>
+      <p class="errmsg" id="apiErr">Gagal menghubungi AI. Coba lagi ya.</p>
+      <div id="loadingState" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--ink-soft);font-weight:600;">
+        <span class="spinner" aria-hidden="true"></span> AI sedang membaca konteks…
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="generateBtn" style="margin-top:8px;">Generate pesan</button>
     </form>
   </section>
 
@@ -450,23 +461,24 @@
     <h1 class="form-title">Pesan kamu siap 🎉</h1>
     <p class="form-sub">Pilih versi yang paling cocok, lalu tinggal copy.</p>
     <div class="tabbar" id="resultTabs">
-      <button data-v="aman" class="active" onclick="switchVariant('aman')">Paling aman</button>
-      <button data-v="tegas" onclick="switchVariant('tegas')">Lebih tegas</button>
-      <button data-v="santai" onclick="switchVariant('santai')">Lebih santai</button>
+      <button data-v="safe" class="active" onclick="switchVariant('safe')">Aman</button>
+      <button data-v="confident" onclick="switchVariant('confident')">Percaya diri</button>
+      <button data-v="strategic" onclick="switchVariant('strategic')">Strategis</button>
     </div>
+    <p class="errmsg" id="resultApiErr">Gagal memuat ulang dari AI. Coba lagi ya.</p>
     <div class="resultcard">
-      <span class="tag tag-aman" id="resultTag">Paling aman</span>
+      <span class="tag tag-aman" id="resultTag">Aman</span>
       <div class="resulttext" id="resultText">—</div>
       <div class="actionbar">
         <button class="copybtn" onclick="copyResult()">📋 Copy</button>
-        <button onclick="regenerate()">🔁 Regenerate</button>
+        <button onclick="regenerate()" id="regenBtn">🔁 Regenerate</button>
         <button onclick="adjustResult('polite')">🙏 More polite</button>
         <button onclick="adjustResult('confident')">💪 More confident</button>
         <button onclick="adjustResult('shorter')">✂️ Shorter</button>
       </div>
     </div>
     <div class="hint-box" id="resultHint"></div>
-    <div class="assumptionnote">⚠️ Versi awal: teks dibuat pakai template, bukan model AI, jadi cek ulang detail angka &amp; nama sebelum dikirim ya.</div>
+    <div class="assumptionnote">✨ Pesan dibuat oleh AI berdasarkan konteks yang kamu isi — tetap cek ulang angka &amp; nama sebelum dikirim ya.</div>
   </section>
 
   <!-- IMPROVE MY MESSAGE -->
@@ -672,179 +684,33 @@ const byId = id => SITUATIONS.find(s=>s.id===id);
 /* ---------- 2. SMALL HELPERS ---------- */
 function esc(s){ return (s||'').toString(); }
 
-function fmtAngka(v){
-  if(!v) return v;
-  const cleaned = v.trim();
-  if(/^\d+(\.\d+)?$/.test(cleaned)){
-    const n = Number(cleaned);
-    if(n < 1000) return 'Rp' + n + ' juta';
-    return 'Rp' + n.toLocaleString('id-ID');
-  }
-  return cleaned;
+// Turns the dynamic form values into one plain-language context string
+// that gets sent to /api/chat as "message". Generic across all 13
+// situations so we don't need a template per situation anymore — the
+// AI does the actual composing now.
+function buildContextMessage(situationId, values){
+  const s = byId(situationId);
+  const parts = s.fields
+    .map(f => {
+      const v = (values[f.key] || '').trim();
+      if(!v) return null;
+      return `${f.label}: ${v}`;
+    })
+    .filter(Boolean);
+  return parts.join('. ') + '.';
 }
-
-function greeting(media, tone, namaHr){
-  const who = namaHr ? namaHr : (tone==='santai' ? 'kak' : 'Bapak/Ibu');
-  if(media==='whatsapp'){
-    if(tone==='santai') return `Halo ${who}, izin ganggu waktunya sebentar ya`;
-    if(tone==='tegas') return `Selamat pagi/siang, izin menyampaikan sesuatu`;
-    return `Selamat pagi/siang ${namaHr? namaHr : ''}, mohon izin menyampaikan sesuatu`;
-  }
-  if(media==='email'){
-    return `Selamat pagi/siang${namaHr? ' '+namaHr: ''},`;
-  }
-  // linkedin
-  return `Halo${namaHr? ' '+namaHr: ''}, semoga sehat selalu.`;
-}
-
-function closing(media, tone){
-  if(media==='whatsapp'){
-    if(tone==='santai') return `Ditunggu kabarnya ya, makasih banyak 🙏`;
-    if(tone==='tegas') return `Mohon konfirmasinya, terima kasih.`;
-    return `Mohon informasinya ya, terima kasih banyak sebelumnya.`;
-  }
-  if(media==='email'){
-    return `Mohon informasi dan arahannya. Terima kasih atas waktu dan perhatiannya.\n\nSalam hormat,`;
-  }
-  return `Terima kasih banyak sebelumnya, saya tunggu kabar baiknya.`;
-}
-
-function wrap(media, tone, core, namaHr){
-  const g = greeting(media, tone, namaHr);
-  const c = closing(media, tone);
-  if(media==='email'){
-    return `${g}\n\n${core}\n\n${c}`;
-  }
-  return `${g}. ${core} ${c}`;
-}
-
-function maybeEmoji(tone, text){
-  if(tone!=='santai') return text.replace(/\s?[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/ {2,}/g,' ');
-  return text;
-}
-
-/* ---------- 3. CORE MESSAGE BUILDERS PER SITUATION ---------- */
-// each returns { aman, tegas, santai } — core sentence(s), media-agnostic.
-const CORE = {
-  negosiasi_gaji(d){
-    const offer = fmtAngka(d.offer_perusahaan), target = fmtAngka(d.target_gaji);
-    const pengalaman = d.pengalaman ? ` dengan pengalaman ${d.pengalaman}` : '';
-    const alasan = d.alasan ? d.alasan.trim().replace(/\.$/,'') : '';
-    return {
-      aman: `Saya sangat senang menerima informasi mengenai posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}. Setelah dipertimbangkan${pengalaman}, apakah memungkinkan untuk mendiskusikan penyesuaian gaji dari ${offer} menjadi kisaran ${target}? ${alasan? 'Ini mengingat '+alasan+'.':''}`,
-      tegas: `Terima kasih atas offer untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}. Namun berdasarkan ${alasan||'pengalaman dan kualifikasi saya'}${pengalaman}, saya ingin mengajukan angka ${target} sebagai gaji yang lebih sesuai dibanding ${offer}.`,
-      santai: `Makasih banyak buat offernya di posisi ${d.posisi}! Cuma mau nanya nih, kira-kira masih bisa dinaikin nggak dari ${offer} ke sekitar ${target}? ${alasan? 'Soalnya '+alasan+'.':''}`,
-    };
-  },
-  follow_up_interview(d){
-    const namaHr = d.nama_hr;
-    return {
-      aman: `Saya ${namaHr? '':''}ingin menanyakan kabar terkait proses interview untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} pada ${d.tanggal_interview}. Mohon informasi mengenai tahap selanjutnya jika berkenan.`,
-      tegas: `Saya ingin follow up mengenai kelanjutan proses rekrutmen untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} setelah interview pada ${d.tanggal_interview}. Mohon update prosesnya sampai sejauh mana.`,
-      santai: `Mau follow up soal interview aku buat posisi ${d.posisi} tanggal ${d.tanggal_interview} kemarin. Ada update nggak ya soal prosesnya?`,
-    };
-  },
-  tanya_hasil_interview(d){
-    return {
-      aman: `Saya ingin menanyakan hasil interview untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} yang berlangsung pada ${d.tanggal_interview}. Mohon informasinya jika sudah ada keputusan.`,
-      tegas: `Sudah cukup lama sejak interview saya untuk posisi ${d.posisi} pada ${d.tanggal_interview}, saya ingin menanyakan kepastian hasilnya.`,
-      santai: `Halo, mau nanya soal hasil interview aku kemarin tanggal ${d.tanggal_interview} buat posisi ${d.posisi}. Udah ada kabar belum ya?`,
-    };
-  },
-  counter_offer(d){
-    const offer = fmtAngka(d.offer_diterima), target = fmtAngka(d.target_gaji);
-    const alasan = d.alasan? d.alasan.trim().replace(/\.$/,''):'';
-    return {
-      aman: `Terima kasih atas offer untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''} sebesar ${offer}. Apabila memungkinkan, saya ingin mengajukan angka ${target}, mengingat ${alasan||'kualifikasi dan pengalaman yang saya miliki'}.`,
-      tegas: `Saya menghargai offer sebesar ${offer} untuk posisi ${d.posisi}. Namun mengingat ${alasan||'kondisi saya saat ini'}, saya mengajukan counter offer di angka ${target}.`,
-      santai: `Makasih ya buat offernya di angka ${offer}! Boleh nggak kalau aku counter di ${target}? Soalnya ${alasan||'ada pertimbangan lain dari sisi aku'}.`,
-    };
-  },
-  minta_kenaikan_gaji(d){
-    const now = d.gaji_sekarang? fmtAngka(d.gaji_sekarang):'';
-    const target = fmtAngka(d.target_gaji);
-    const pencapaian = d.pencapaian? d.pencapaian.trim().replace(/\.$/,''):'kontribusi saya selama ini';
-    return {
-      aman: `Setelah bekerja selama ${d.lama_bekerja} sebagai ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}, saya ingin mendiskusikan kemungkinan penyesuaian gaji${now? ' dari '+now:''} menjadi ${target}, mengingat ${pencapaian}.`,
-      tegas: `Saya ingin mengajukan kenaikan gaji${now? ' dari '+now:''} menjadi ${target} setelah ${d.lama_bekerja} bekerja sebagai ${d.posisi}, mengingat kontribusi saya yaitu ${pencapaian}.`,
-      santai: `Mau ngobrol soal gaji nih. Udah ${d.lama_bekerja} aku di posisi ${d.posisi}, dan udah banyak kontribusi kayak ${pencapaian}. Kira-kira bisa nggak ya dinaikin ke ${target}?`,
-    };
-  },
-  minta_wfh(d){
-    const posisi = d.posisi? ` sebagai ${d.posisi}`:'';
-    return {
-      aman: `Saya ingin mengajukan izin untuk bekerja dari rumah (WFH) sebanyak ${d.frekuensi}${posisi}, dengan alasan ${d.alasan}. Saya pastikan produktivitas tetap terjaga seperti biasa.`,
-      tegas: `Saya mengajukan pengaturan kerja WFH ${d.frekuensi}${posisi}. Alasan utamanya adalah ${d.alasan}, dan saya siap berkoordinasi agar pekerjaan tidak terganggu.`,
-      santai: `Boleh nggak ya kalau aku WFH ${d.frekuensi}? Soalnya ${d.alasan}. Kerjaan tetap aku pastikan jalan seperti biasa kok.`,
-    };
-  },
-  minta_cuti(d){
-    const alasan = d.alasan? ` untuk keperluan ${d.alasan}`:'';
-    return {
-      aman: `Saya ingin mengajukan cuti pada tanggal ${d.tanggal_mulai} sampai ${d.tanggal_selesai}${alasan}. Saya akan pastikan pekerjaan sudah di-handle sebelum tanggal tersebut.`,
-      tegas: `Saya mengajukan cuti mulai ${d.tanggal_mulai} hingga ${d.tanggal_selesai}${alasan}. Mohon persetujuannya agar saya bisa mengatur jadwal lebih lanjut.`,
-      santai: `Mau izin cuti tanggal ${d.tanggal_mulai} sampai ${d.tanggal_selesai} ya${alasan}. Kerjaan bakal aku beresin dulu sebelum itu.`,
-    };
-  },
-  tolak_lembur(d){
-    const alt = d.alternatif? ` Sebagai gantinya, ${d.alternatif}.`:'';
-    return {
-      aman: `Mohon izin, untuk lembur kali ini sepertinya saya belum bisa ikut karena ${d.alasan}.${alt}`,
-      tegas: `Untuk lembur kali ini saya tidak bisa berpartisipasi karena ${d.alasan}.${alt}`,
-      santai: `Duh sori, kayaknya aku nggak bisa lembur kali ini karena ${d.alasan}.${alt}`,
-    };
-  },
-  resign(d){
-    const alasan = d.alasan? ` Alasan saya adalah ${d.alasan}.`:'';
-    return {
-      aman: `Dengan ini saya bermaksud menyampaikan pengunduran diri dari posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}, terhitung efektif tanggal ${d.tanggal_terakhir}.${alasan} Terima kasih atas kesempatan yang telah diberikan selama ini.`,
-      tegas: `Saya mengajukan pengunduran diri dari posisi ${d.posisi}, efektif per tanggal ${d.tanggal_terakhir}.${alasan} Mohon diproses sesuai prosedur yang berlaku.`,
-      santai: `Aku mau kasih tau kalau aku resign dari posisi ${d.posisi}, terakhir kerja tanggal ${d.tanggal_terakhir} ya.${alasan} Makasih banyak buat kesempatannya selama ini.`,
-    };
-  },
-  tanya_benefit(d){
-    const benefit = d.jenis_benefit? d.jenis_benefit : 'benefit yang berlaku';
-    return {
-      aman: `Saya ingin menanyakan lebih lanjut mengenai ${benefit} untuk posisi ${d.posisi}${d.perusahaan? ' di '+d.perusahaan:''}, agar saya dapat mempertimbangkan dengan lebih matang.`,
-      tegas: `Sebelum melanjutkan proses, saya ingin memastikan detail terkait ${benefit} untuk posisi ${d.posisi}.`,
-      santai: `Mau nanya dong soal ${benefit} buat posisi ${d.posisi}, biar aku bisa pertimbangin juga.`,
-    };
-  },
-  tanya_status_lamaran(d){
-    return {
-      aman: `Saya ingin menanyakan status lamaran saya untuk posisi ${d.posisi} di ${d.perusahaan} yang saya kirimkan pada ${d.tanggal_apply}. Mohon informasinya jika berkenan.`,
-      tegas: `Saya sudah mengirimkan lamaran untuk posisi ${d.posisi} di ${d.perusahaan} sejak ${d.tanggal_apply} dan ingin menanyakan kepastian statusnya.`,
-      santai: `Halo, mau nanya progress lamaran aku buat posisi ${d.posisi} di ${d.perusahaan} yang aku kirim ${d.tanggal_apply}. Ada update nggak ya?`,
-    };
-  },
-  alasan_pindah_kerja(d){
-    const dari = d.perusahaan_lama? ` dari ${d.perusahaan_lama}`:'';
-    return {
-      aman: `Alasan utama saya pindah kerja${dari} adalah ${d.alasan_utama}. Saya merasa ini menjadi langkah yang tepat untuk perkembangan karier saya ke depannya.`,
-      tegas: `Saya memutuskan untuk pindah${dari} karena ${d.alasan_utama}, dan saya yakin ini keputusan yang tepat untuk karier saya.`,
-      santai: `Aku pindah kerja${dari} soalnya ${d.alasan_utama}. Menurutku ini langkah yang pas buat aku ke depannya.`,
-    };
-  },
-  minta_ubah_kontrak(d){
-    return {
-      aman: `Saya ingin mengajukan diskusi terkait ${d.jenis_perubahan} pada kontrak kerja saya, mengingat ${d.alasan}.`,
-      tegas: `Saya ingin mengajukan ${d.jenis_perubahan} secara resmi pada kontrak kerja saya karena ${d.alasan}. Mohon dapat segera ditindaklanjuti.`,
-      santai: `Mau ngobrolin soal ${d.jenis_perubahan} di kontrak kerja aku nih, soalnya ${d.alasan}. Kira-kira bisa dibahas nggak ya?`,
-    };
-  },
-};
 
 /* ---------- 4. STATE ---------- */
 let state = {
   history:['home'],
   currentSituation:null,
-  currentVariant:'aman',
+  currentVariant:'safe',
   formValues:{},
-  gaya:'profesional',
+  gaya:'safe',
   media:'whatsapp',
   namaHr:'',
-  results:{aman:'',tegas:'',santai:''},
-  regenSeed:0,
+  results:{safe:'',confident:'',strategic:''},
+  lastRequest:null, // {message, situation, tone, media} — reused by Regenerate
 };
 
 /* ---------- 5. NAVIGATION ---------- */
@@ -953,6 +819,7 @@ function handleGenerate(e){
     if(f.required && !values[f.key]) missing = true;
   });
   const errEl = document.getElementById('formErr');
+  document.getElementById('apiErr').style.display = 'none';
   if(missing){
     errEl.style.display='block';
     return false;
@@ -964,39 +831,86 @@ function handleGenerate(e){
   state.media = getSegVal('segMedia');
   state.namaHr = values.nama_hr || '';
 
-  generateAll();
-  goTo('result');
+  const payload = {
+    message: buildContextMessage(s.id, values),
+    situation: s.label.toLowerCase(),
+    tone: state.gaya,     // 'safe' | 'confident' | 'strategic'
+    media: state.media,   // extra field, not in the original spec's example but useful for the backend
+  };
+  state.lastRequest = payload;
+  generateViaAI(payload, {navigateOnSuccess:true});
   return false;
 }
 
-/* ---------- 8. GENERATE RESULTS ---------- */
-function generateAll(){
-  const s = byId(state.currentSituation);
-  const core = CORE[s.id](state.formValues);
-  ['aman','tegas','santai'].forEach(tone=>{
-    let txt = wrap(state.media, tone, core[tone].trim(), state.namaHr);
-    txt = maybeEmoji(tone, txt);
-    if(tone==='santai') txt = addEmojis(txt);
-    state.results[tone] = txt.replace(/\s{2,}/g,' ').trim();
-  });
-  // highlight the tone the user picked as the initially shown tab
-  state.currentVariant = state.gaya==='santai'? 'santai' : state.gaya==='tegas'? 'tegas' : 'aman';
-  renderResult();
+/* ---------- 8. GENERATE RESULTS (AI-powered via /api/chat) ---------- */
+async function generateViaAI(payload, opts){
+  opts = opts || {};
+  setLoading(true, opts.regenerating);
+
+  try{
+    const res = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+
+    let data;
+    try{ data = await res.json(); }catch(e){ data = null; }
+
+    if(!res.ok || !data || data.error){
+      throw new Error((data && data.error) || 'Gagal memuat respons dari AI.');
+    }
+
+    state.results.safe = (data.safe || '').trim();
+    state.results.confident = (data.confident || '').trim();
+    state.results.strategic = (data.strategic || '').trim();
+
+    state.currentVariant = payload.tone || 'safe';
+    renderResult();
+
+    if(opts.navigateOnSuccess) goTo('result');
+    if(opts.regenerating) showToast('Versi baru dari AI siap 🔁');
+
+  }catch(err){
+    console.error(err);
+    if(opts.regenerating){
+      document.getElementById('resultApiErr').style.display = 'block';
+      showToast('Gagal regenerate, coba lagi ya');
+    } else {
+      document.getElementById('apiErr').textContent = '⚠️ ' + (err.message || 'Gagal menghubungi AI. Coba lagi ya.');
+      document.getElementById('apiErr').style.display = 'block';
+    }
+  }finally{
+    setLoading(false, opts.regenerating);
+  }
 }
 
-function addEmojis(txt){
-  if(/lembur|resign|kontrak/.test(txt.toLowerCase())) return txt; // keep serious topics lighter
-  if(!/[\u{1F300}-\u{1FAFF}]/u.test(txt)){
-    return txt + ' 😊';
+function setLoading(isLoading, isRegenerate){
+  const btn = document.getElementById('generateBtn');
+  const loadingEl = document.getElementById('loadingState');
+  if(btn){
+    btn.disabled = isLoading;
+    if(!isRegenerate) loadingEl.style.display = isLoading ? 'flex' : 'none';
   }
-  return txt;
+  const regenBtn = document.getElementById('regenBtn');
+  if(regenBtn){
+    regenBtn.disabled = isLoading;
+    regenBtn.textContent = isLoading ? '⏳ AI sedang membaca konteks…' : '🔁 Regenerate';
+  }
+}
+
+function regenerate(){
+  if(!state.lastRequest){ showToast('Belum ada permintaan sebelumnya'); return; }
+  document.getElementById('resultApiErr').style.display = 'none';
+  // re-send the same context; the AI naturally produces a fresh phrasing each call
+  generateViaAI(state.lastRequest, {regenerating:true});
 }
 
 function renderResult(){
   document.querySelectorAll('#resultTabs button').forEach(b=>{
     b.classList.toggle('active', b.dataset.v===state.currentVariant);
   });
-  const tagMap = {aman:['Paling aman','tag-aman'], tegas:['Lebih tegas','tag-tegas'], santai:['Lebih santai','tag-santai']};
+  const tagMap = {safe:['Aman','tag-aman'], confident:['Percaya diri','tag-tegas'], strategic:['Strategis','tag-santai']};
   const [label, cls] = tagMap[state.currentVariant];
   const tag = document.getElementById('resultTag');
   tag.textContent = label;
@@ -1021,27 +935,7 @@ function copyResult(){
   copyText(state.results[state.currentVariant]);
 }
 
-function regenerate(){
-  // lightweight variation: rotate greeting/closing phrasing so it doesn't feel identical
-  state.regenSeed++;
-  const s = byId(state.currentSituation);
-  const core = CORE[s.id](state.formValues);
-  const tone = state.currentVariant;
-  const altGreetings = {
-    whatsapp: ['Halo, izin nanya sebentar', 'Permisi, boleh minta waktunya sebentar', 'Halo, mau menyampaikan sesuatu'],
-    email: ['Selamat pagi/siang,', 'Dengan hormat,', 'Halo, semoga sehat selalu.'],
-    linkedin: ['Halo, semoga harinya menyenangkan.', 'Halo, senang bisa terhubung kembali.', 'Halo, apa kabar?'],
-  };
-  const pool = altGreetings[state.media];
-  const g = pool[state.regenSeed % pool.length];
-  let body = core[tone].trim();
-  let txt = state.media==='email' ? `${g}\n\n${body}\n\n${closing(state.media, tone)}` : `${g}. ${body} ${closing(state.media, tone)}`;
-  txt = maybeEmoji(tone, txt);
-  if(tone==='santai') txt = addEmojis(txt);
-  state.results[tone] = txt.replace(/\s{2,}/g,' ').trim();
-  renderResult();
-  showToast('Versi baru dibuat 🔁');
-}
+// Note: regenerate() now lives in section 8 above and calls /api/chat again.
 
 function adjustResult(mode){
   const tone = state.currentVariant;
