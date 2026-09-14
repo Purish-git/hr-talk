@@ -394,6 +394,15 @@
       </div>
     </div>
 
+    <div class="upgrade-banner" onclick="goTo('upgrade')" style="display:flex;align-items:center;gap:10px;background:var(--violet-soft);border-radius:var(--radius-md);padding:14px 16px;margin-top:14px;cursor:pointer;">
+      <span style="font-size:20px;">🔓</span>
+      <div style="flex:1;">
+        <strong style="display:block;font-size:13.5px;color:var(--violet);">Upgrade ke Premium</strong>
+        <span style="font-size:12px;color:var(--ink-soft);">Buka semua 13 situasi + generate lebih banyak per hari</span>
+      </div>
+      <span style="color:var(--violet);font-size:18px;">›</span>
+    </div>
+
     <div class="section-head">
       <h2>Paling sering dicari</h2>
       <a onclick="goTo('tools')">Lihat semua</a>
@@ -412,6 +421,39 @@
         <h3>What should I say next?</h3>
         <p>Tempel balasan HR, dapat pilihan respons.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- UPGRADE -->
+  <section class="screen" id="screen-upgrade">
+    <h1 class="form-title">Upgrade ke Premium 🔓</h1>
+    <p class="form-sub">Gratis kamu dapat 3 situasi + 3x generate/hari. Premium buka semuanya.</p>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <span style="font-size:20px;">✅</span>
+        <div><strong style="font-size:13.5px;">Semua 13 situasi kebuka</strong><br><span style="font-size:12.5px;color:var(--ink-soft);">termasuk resign, minta naik gaji, WFH, cuti, dan lainnya</span></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <span style="font-size:20px;">✅</span>
+        <div><strong style="font-size:13.5px;">Generate jauh lebih banyak per hari</strong><br><span style="font-size:12.5px;color:var(--ink-soft);">nggak kebentur limit 3x/hari lagi</span></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <span style="font-size:20px;">✅</span>
+        <div><strong style="font-size:13.5px;">Berlaku selamanya</strong><br><span style="font-size:12.5px;color:var(--ink-soft);">bayar sekali, kode akses nggak kedaluwarsa</span></div>
+      </div>
+    </div>
+
+    <a href="PASTE_LINK_LYNKID_ATAU_MAYAR_DI_SINI" target="_blank" class="btn btn-primary btn-block" style="margin-bottom:20px;">Beli akses Premium</a>
+
+    <div class="card">
+      <div class="field" style="margin-bottom:10px;">
+        <label>Sudah beli? Masukkan kode akses kamu</label>
+        <input type="text" id="upgradeCodeInput" placeholder="Contoh: HRT-AB3K-9QXZ" style="text-transform:uppercase;">
+      </div>
+      <p class="errmsg" id="upgradeErr"></p>
+      <p class="errmsg" id="upgradeSuccess" style="color:var(--green);"></p>
+      <button class="btn btn-primary btn-block" id="upgradeVerifyBtn" onclick="verifyUpgradeCode()">Aktifkan kode</button>
     </div>
   </section>
 
@@ -552,7 +594,7 @@
 /* ---------- 1. SITUATIONS + DYNAMIC FIELD CONFIG ---------- */
 const SITUATIONS = [
   {
-    id:'negosiasi_gaji', emoji:'💰', label:'Negosiasi gaji',
+    id:'negosiasi_gaji', emoji:'💰', label:'Negosiasi gaji', free:true,
     blurb:'Nego angka offer dari perusahaan',
     fields:[
       {key:'posisi', label:'Posisi yang dilamar', type:'text', placeholder:'Contoh: Social Media Specialist', required:true},
@@ -565,7 +607,7 @@ const SITUATIONS = [
     ]
   },
   {
-    id:'follow_up_interview', emoji:'📩', label:'Follow up interview',
+    id:'follow_up_interview', emoji:'📩', label:'Follow up interview', free:true,
     blurb:'Nanya kelanjutan proses interview',
     fields:[
       {key:'posisi', label:'Posisi yang diinterview', type:'text', placeholder:'Contoh: Content Writer', required:true},
@@ -575,7 +617,7 @@ const SITUATIONS = [
     ]
   },
   {
-    id:'tanya_hasil_interview', emoji:'⏳', label:'Menanyakan hasil interview',
+    id:'tanya_hasil_interview', emoji:'⏳', label:'Menanyakan hasil interview', free:true,
     blurb:'Tanyakan hasil setelah interview',
     fields:[
       {key:'posisi', label:'Posisi yang diinterview', type:'text', placeholder:'Contoh: Data Analyst', required:true},
@@ -710,8 +752,28 @@ let state = {
   media:'whatsapp',
   namaHr:'',
   results:{safe:'',confident:'',strategic:''},
-  lastRequest:null, // {message, situation, tone, media} — reused by Regenerate
+  lastRequest:null, // {message, situation, tone, media, accessCode} — reused by Regenerate
+  pendingSituation:null, // situasi premium yang mau dibuka user, dipakai buat redirect balik setelah upgrade sukses
 };
+
+const ACCESS_CODE_STORAGE_KEY = 'hrtalk_access_code';
+
+function getStoredCode(){
+  try{ return localStorage.getItem(ACCESS_CODE_STORAGE_KEY) || ''; }catch(e){ return ''; }
+}
+function setStoredCode(code){
+  try{ localStorage.setItem(ACCESS_CODE_STORAGE_KEY, code); }catch(e){}
+}
+function clearStoredCode(){
+  try{ localStorage.removeItem(ACCESS_CODE_STORAGE_KEY); }catch(e){}
+}
+// NOTE: flag ini cuma dipakai buat kosmetik UI (nampilin badge terkunci /
+// nyembunyiin CTA upgrade). Validasi SEBENARNYA selalu terjadi di server
+// (api/chat.js) setiap kali generate — jadi walau flag ini "dipalsu" lewat
+// devtools, backend tetap akan menolak situasi premium tanpa kode yang valid.
+function isPremiumUser(){
+  return !!getStoredCode();
+}
 
 /* ---------- 5. NAVIGATION ---------- */
 function goTo(screen, opts){
@@ -734,6 +796,12 @@ function goBack(){
 }
 
 function openSituation(id){
+  const s = byId(id);
+  if(!s.free && !isPremiumUser()){
+    state.pendingSituation = id;
+    goTo('upgrade');
+    return;
+  }
   state.currentSituation = id;
   buildForm(id);
   goTo('form');
@@ -741,24 +809,35 @@ function openSituation(id){
 
 /* ---------- 6. RENDER HOME + ALL TOOLS ---------- */
 function renderGrids(){
+  const premium = isPremiumUser();
+
   const quick = document.getElementById('quickGrid');
   const featured = ['negosiasi_gaji','follow_up_interview','minta_kenaikan_gaji','resign'];
   quick.innerHTML = featured.map(id=>{
     const s = byId(id);
+    const locked = !s.free && !premium;
     return `<div class="qcard" onclick="openSituation('${s.id}')">
       <span class="emoji">${s.emoji}</span>
-      <span class="label">${s.label}</span>
+      <span class="label">${s.label}${locked? ' 🔒' : ''}</span>
     </div>`;
   }).join('');
 
   const all = document.getElementById('allToolsGrid');
-  all.innerHTML = SITUATIONS.map(s=>`
+  all.innerHTML = SITUATIONS.map(s=>{
+    const locked = !s.free && !premium;
+    return `
     <div class="toolrow" onclick="openSituation('${s.id}')">
       <div class="emoji">${s.emoji}</div>
-      <div class="txt"><strong>${s.label}</strong><span>${s.blurb}</span></div>
+      <div class="txt"><strong>${s.label}${locked? ' <span style=\"color:var(--ink-soft);font-weight:600;\">🔒 Premium</span>' : ''}</strong><span>${s.blurb}</span></div>
       <div class="chev">›</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+
+  // tombol/banner upgrade di Home & All Tools nggak perlu ditampilin lagi
+  // kalau user udah premium
+  document.querySelectorAll('.upgrade-banner').forEach(el=>{
+    el.style.display = premium ? 'none' : 'flex';
+  });
 }
 
 /* ---------- 7. DYNAMIC FORM ---------- */
@@ -836,6 +915,7 @@ function handleGenerate(e){
     situation: s.label.toLowerCase(),
     tone: state.gaya,     // 'safe' | 'confident' | 'strategic'
     media: state.media,   // extra field, not in the original spec's example but useful for the backend
+    accessCode: getStoredCode(), // kosong kalau user free — backend yang tervalidasi ulang di server
   };
   state.lastRequest = payload;
   generateViaAI(payload, {navigateOnSuccess:true});
@@ -858,6 +938,16 @@ async function generateViaAI(payload, opts){
     try{ data = await res.json(); }catch(e){ data = null; }
 
     if(!res.ok || !data || data.error){
+      if(data && data.needsUpgrade){
+        // Situasi terkunci atau kuota gratis habis — arahkan ke layar upgrade
+        // alih-alih cuma nampilin pesan error generik.
+        setLoading(false, opts.regenerating);
+        document.getElementById('upgradeErr').textContent = '';
+        document.getElementById('upgradeErr').style.display = 'none';
+        goTo('upgrade');
+        showToast(data.error || 'Butuh Premium buat lanjut 🔓');
+        return;
+      }
       throw new Error((data && data.error) || 'Gagal memuat respons dari AI.');
     }
 
@@ -904,6 +994,69 @@ function regenerate(){
   document.getElementById('resultApiErr').style.display = 'none';
   // re-send the same context; the AI naturally produces a fresh phrasing each call
   generateViaAI(state.lastRequest, {regenerating:true});
+}
+
+/* ---------- 8b. UPGRADE / VERIFY ACCESS CODE ---------- */
+async function verifyUpgradeCode(){
+  const input = document.getElementById('upgradeCodeInput');
+  const errEl = document.getElementById('upgradeErr');
+  const successEl = document.getElementById('upgradeSuccess');
+  const btn = document.getElementById('upgradeVerifyBtn');
+  const code = (input.value || '').trim().toUpperCase();
+
+  errEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  if(!code){
+    errEl.textContent = 'Masukkan kode akses dulu ya.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Memeriksa kode…';
+
+  try{
+    const res = await fetch('/api/verify-code', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json().catch(()=>null);
+
+    if(!data || !data.valid){
+      errEl.textContent = (data && data.error) || 'Kode tidak valid. Cek lagi ya.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    setStoredCode(code);
+    successEl.textContent = '✅ Kode berhasil diaktifkan! Semua fitur sudah kebuka.';
+    successEl.style.display = 'block';
+    renderGrids(); // hilangkan badge terkunci & banner upgrade
+
+    showToast('Premium aktif 🎉');
+
+    // Kalau upgrade ini dipicu dari user coba buka situasi terkunci,
+    // langsung lanjutkan ke form situasi itu.
+    setTimeout(()=>{
+      if(state.pendingSituation){
+        const id = state.pendingSituation;
+        state.pendingSituation = null;
+        openSituation(id);
+      } else {
+        goTo('home');
+      }
+    }, 900);
+
+  }catch(err){
+    console.error(err);
+    errEl.textContent = 'Gagal menghubungi server. Coba lagi ya.';
+    errEl.style.display = 'block';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Aktifkan kode';
+  }
 }
 
 function renderResult(){
