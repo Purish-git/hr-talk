@@ -5,11 +5,19 @@
 // mengembalikan 3 opsi pesan: safe, confident, strategic.
 //
 // PENTING: API key TIDAK PERNAH dikirim ke frontend. Kunci dibaca di sini,
-// di server, dari environment variable AI_API_KEY yang kamu set di Vercel
-// (Project Settings → Environment Variables). Kalau variabel ini belum
-// diset, endpoint akan otomatis menolak request dengan pesan error yang jelas.
+// di server, dari environment variable ANTHROPIC_API_KEY yang kamu set di
+// Vercel (Project Settings → Environment Variables). Kalau variabel ini
+// belum diset, endpoint akan otomatis menolak request dengan pesan error
+// yang jelas.
 
-const AI_MODEL = 'claude-sonnet-5'; // ganti di sini kalau mau pakai model lain
+// Claude Haiku 4.5: model tercepat & termurah di lineup Claude saat ini,
+// cukup kuat untuk tugas menyusun/menyunting pesan singkat berbasis konteks
+// seperti ini — cocok untuk aplikasi career/HR tools dengan volume request
+// yang bisa tinggi tapi tiap task-nya relatif ringan. Ganti ke
+// 'claude-sonnet-5' di sini kalau ke depannya butuh nalar/nuansa yang lebih
+// dalam (mis. situasi negosiasi yang sangat kompleks) dan biaya bukan
+// prioritas utama.
+const AI_MODEL = 'claude-haiku-4-5-20251001';
 const ANTHROPIC_VERSION = '2023-06-01';
 
 module.exports = async function handler(req, res) {
@@ -20,10 +28,10 @@ module.exports = async function handler(req, res) {
   }
 
   // --- 2. Ambil API key dari environment variable, bukan dari kode ---
-  const apiKey = process.env.AI_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({
-      error: 'Server belum dikonfigurasi: environment variable AI_API_KEY tidak ditemukan.',
+      error: 'Server belum dikonfigurasi: environment variable ANTHROPIC_API_KEY tidak ditemukan.',
     });
   }
 
