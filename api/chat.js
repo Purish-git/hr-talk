@@ -20,11 +20,74 @@
 const AI_MODEL = 'claude-haiku-4-5-20251001';
 const ANTHROPIC_VERSION = '2023-06-01';
 
+// --- RATE LIMITER (sederhana, in-memory) ---------------------------------
+// Kenapa in-memory dan bukan database: supaya nggak perlu setup infra
+// tambahan dulu di tahap awal. Vercel bisa menjaga 1 instance function tetap
+// "hangat" selama beberapa menit kalau traffic-nya stabil, jadi counter ini
+// lumayan efektif menahan orang yang spam klik generate. TAPI ini BUKAN
+// jaminan sempurna — kalau function di-restart (deploy baru, idle lama,
+// atau traffic dari banyak region sekaligus) counter bisa reset ke 0.
+// Anggap ini lapis kedua; lapis pertama & yang PALING penting tetap hard
+// spend limit yang kamu set di console.anthropic.com.
+//
+// Kalau nanti traffic sudah lumayan ramai, ganti Map ini dengan penyimpanan
+// yang persisten lintas request, misalnya Vercel KV / Upstash Redis.
+const usageStore = new Map(); // key: "ip|YYYY-MM-DD" -> jumlah request hari itu
+const globalUsageStore = new Map(); // key: "YYYY-MM-DD" -> jumlah request semua orang hari itu
+
+const MAX_PER_IP_PER_DAY = Number(process.env.MAX_REQUESTS_PER_IP_PER_DAY || 15);
+const MAX_GLOBAL_PER_DAY = Number(process.env.MAX_REQUESTS_GLOBAL_PER_DAY || 300);
+
+function getClientIp(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : 'unknown';
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10); // "2026-09-14"
+}
+
+function checkAndIncrementLimit(req) {
+  const day = todayKey();
+  const ip = getClientIp(req);
+  const ipKey = `${ip}|${day}`;
+
+  const globalCount = globalUsageStore.get(day) || 0;
+  if (globalCount >= MAX_GLOBAL_PER_DAY) {
+    return { allowed: false, reason: 'global' };
+  }
+
+  const ipCount = usageStore.get(ipKey) || 0;
+  if (ipCount >= MAX_PER_IP_PER_DAY) {
+    return { allowed: false, reason: 'ip' };
+  }
+
+  usageStore.set(ipKey, ipCount + 1);
+  globalUsageStore.set(day, globalCount + 1);
+
+  // Beres-beres kecil biar Map tidak membengkak tanpa batas kalau function
+  // hidup lama (bukan mekanisme wajib, cuma jaga-jaga).
+  if (usageStore.size > 5000) usageStore.clear();
+
+  return { allowed: true };
+}
+// ---------------------------------------------------------------------------
+
 module.exports = async function handler(req, res) {
   // --- 1. Hanya izinkan POST ---
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method tidak diizinkan. Gunakan POST.' });
+  }
+
+  // --- 1b. Cek rate limit sebelum panggil AI (biar hemat biaya) ---
+  const limitCheck = checkAndIncrementLimit(req);
+  if (!limitCheck.allowed) {
+    const msg = limitCheck.reason === 'ip'
+      ? 'Kamu sudah mencapai batas generate hari ini. Coba lagi besok ya 🙏'
+      : 'Layanan sedang penuh untuk hari ini. Coba lagi besok ya 🙏';
+    return res.status(429).json({ error: msg });
   }
 
   // --- 2. Ambil API key dari environment variable, bukan dari kode ---
