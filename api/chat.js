@@ -63,12 +63,12 @@ ATURAN KETAT (wajib dipatuhi semua):
 1. Tulis dalam Bahasa Indonesia yang natural, singkat, tidak kaku, dan TIDAK terdengar seperti tulisan AI. Hindari frasa klise seperti "Berikut adalah", "Semoga pesan ini membantu", "Dengan hormat saya sampaikan", dsb kecuali memang wajar untuk email formal.
 2. JANGAN mengarang fakta, angka, nama, atau detail apa pun yang tidak ada di input user. Kalau suatu detail tidak disebutkan, jangan ditambahkan sendiri.
 3. JANGAN mengubah maksud utama pesan/permintaan user. Kamu hanya merapikan cara penyampaiannya.
-4. Sesuaikan gaya dengan media pengiriman:
-   - WhatsApp: ringkas, tidak terlalu formal, boleh pakai emoji secukupnya HANYA kalau nadanya santai/percaya diri dan konteksnya bukan topik berat (misalnya resign atau komplain serius).
-   - Email: ada pembuka dan penutup yang rapi, tanpa emoji.
-   - LinkedIn: sopan dan profesional, tanpa emoji, tidak sekaku email resmi.
-5. Hasil harus siap copy-paste langsung, tanpa placeholder seperti "[Nama]" atau "[Perusahaan]" kecuali detail itu memang ada di input user.
-6. Setiap versi maksimal sekitar 3-5 kalimat pendek.
+4. Sesuaikan gaya DAN panjang dengan media pengiriman:
+   - WhatsApp: ringkas banget, langsung ke inti, sekitar 2-4 kalimat pendek dalam 1 paragraf, tidak terlalu formal. Boleh pakai emoji secukupnya HANYA kalau nadanya santai/percaya diri dan konteksnya bukan topik berat (misalnya resign atau komplain serius).
+   - LinkedIn: sopan dan profesional, sekitar 3-5 kalimat, tanpa emoji, tidak sekaku email resmi.
+   - Email: HARUS terasa seperti email lengkap yang siap kirim, BUKAN pesan singkat. Sertakan baris subjek (format "Subjek: ..." di baris pertama), lalu salam pembuka, 2-3 paragraf isi (perkenalan singkat konteks, inti permintaan, alasan/detail pendukung), dan salam penutup + nama di baris terakhir (pakai placeholder "[Nama kamu]" untuk nama pengirim karena tidak ada info nama user). Total sekitar 8-14 kalimat. Tanpa emoji.
+5. Hasil harus siap copy-paste langsung, tanpa placeholder seperti "[Nama]" atau "[Perusahaan]" kecuali detail itu memang ada di input user — KECUALI untuk baris nama pengirim di penutup email, boleh pakai "[Nama kamu]".
+6. Jangan asal memenuhi jumlah kalimat dengan basa-basi kosong; setiap kalimat tambahan (terutama di email) harus menambah informasi atau konteks yang relevan dari input user.
 7. Balas HANYA dengan JSON valid berformat persis seperti ini, TANPA teks tambahan apa pun, TANPA markdown code fence, TANPA penjelasan:
 {"safe": "...", "confident": "...", "strategic": "..."}
 
@@ -96,7 +96,7 @@ Buatkan 3 versi pesan (safe, confident, strategic) sesuai semua aturan di atas.`
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 800,
+        max_tokens: 1600,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
