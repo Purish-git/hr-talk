@@ -1,41 +1,45 @@
 // api/chat.js
 // Vercel Serverless Function.
-// Menerima { message, situation, tone, media? } dari frontend, meneruskan
-// ke Claude API (Anthropic) dengan system prompt yang sudah disiapkan, lalu
-// mengembalikan 3 opsi pesan: safe, confident, strategic.
+// Menerima { message, situation, tone, media, accessCode? } dari frontend,
+// meneruskan ke Claude API (Anthropic), lalu mengembalikan 3 opsi pesan:
+// safe, confident, strategic.
+//
+// MODEL FREEMIUM:
+// - Tanpa accessCode (atau kode tidak valid): user "free" — cuma boleh akses
+//   situasi yang ada di FREE_SITUATIONS, dan dibatasi MAX_FREE_PER_IP_PER_DAY
+//   generate/hari.
+// - Dengan accessCode yang valid (dicek ke Redis lewat api/_lib/redis.js):
+//   user "premium" — semua 13 situasi kebuka, limit hariannya jauh lebih
+//   longgar (MAX_PREMIUM_PER_IP_PER_DAY), bukan berarti benar-benar tanpa
+//   batas — ini cuma jaring pengaman kalau ada 1 kode bocor/disalahgunakan.
 //
 // PENTING: API key TIDAK PERNAH dikirim ke frontend. Kunci dibaca di sini,
-// di server, dari environment variable ANTHROPIC_API_KEY yang kamu set di
-// Vercel (Project Settings → Environment Variables). Kalau variabel ini
-// belum diset, endpoint akan otomatis menolak request dengan pesan error
-// yang jelas.
+// di server, dari environment variable ANTHROPIC_API_KEY.
 
-// Claude Haiku 4.5: model tercepat & termurah di lineup Claude saat ini,
-// cukup kuat untuk tugas menyusun/menyunting pesan singkat berbasis konteks
-// seperti ini — cocok untuk aplikasi career/HR tools dengan volume request
-// yang bisa tinggi tapi tiap task-nya relatif ringan. Ganti ke
-// 'claude-sonnet-5' di sini kalau ke depannya butuh nalar/nuansa yang lebih
-// dalam (mis. situasi negosiasi yang sangat kompleks) dan biaya bukan
-// prioritas utama.
+const { isCodeValid, incrementCodeUsage } = require('./_lib/redis');
+
 const AI_MODEL = 'claude-haiku-4-5-20251001';
 const ANTHROPIC_VERSION = '2023-06-01';
 
+// --- FREEMIUM: situasi yang boleh diakses tanpa bayar ---------------------
+// Nilai di sini HARUS cocok persis dengan `situation.toLowerCase()` yang
+// dikirim frontend (frontend mengirim label situasi dalam huruf kecil).
+const FREE_SITUATIONS = [
+  'negosiasi gaji',
+  'follow up interview',
+  'menanyakan hasil interview',
+];
+
 // --- RATE LIMITER (sederhana, in-memory) ---------------------------------
-// Kenapa in-memory dan bukan database: supaya nggak perlu setup infra
-// tambahan dulu di tahap awal. Vercel bisa menjaga 1 instance function tetap
-// "hangat" selama beberapa menit kalau traffic-nya stabil, jadi counter ini
-// lumayan efektif menahan orang yang spam klik generate. TAPI ini BUKAN
-// jaminan sempurna — kalau function di-restart (deploy baru, idle lama,
-// atau traffic dari banyak region sekaligus) counter bisa reset ke 0.
-// Anggap ini lapis kedua; lapis pertama & yang PALING penting tetap hard
-// spend limit yang kamu set di console.anthropic.com.
-//
-// Kalau nanti traffic sudah lumayan ramai, ganti Map ini dengan penyimpanan
-// yang persisten lintas request, misalnya Vercel KV / Upstash Redis.
-const usageStore = new Map(); // key: "ip|YYYY-MM-DD" -> jumlah request hari itu
+// Sama seperti sebelumnya: ini lapis kedua, bukan pengganti hard spend limit
+// di console.anthropic.com. In-memory berarti counter bisa reset kalau
+// function di-restart Vercel — cukup untuk skala awal, upgrade ke Redis
+// penuh nanti kalau traffic sudah besar.
+const usageStore = new Map(); // key: "ip|YYYY-MM-DD|tier" -> jumlah request hari itu
 const globalUsageStore = new Map(); // key: "YYYY-MM-DD" -> jumlah request semua orang hari itu
 
-const MAX_PER_IP_PER_DAY = Number(process.env.MAX_REQUESTS_PER_IP_PER_DAY || 15);
+const MAX_FREE_PER_IP_PER_DAY = Number(process.env.MAX_FREE_REQUESTS_PER_IP_PER_DAY || 3);
+const MAX_PREMIUM_PER_IP_PER_DAY = Number(process.env.MAX_PREMIUM_REQUESTS_PER_IP_PER_DAY || 100);
 const MAX_GLOBAL_PER_DAY = Number(process.env.MAX_REQUESTS_GLOBAL_PER_DAY || 300);
 
 function getClientIp(req) {
@@ -48,10 +52,12 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10); // "2026-09-14"
 }
 
-function checkAndIncrementLimit(req) {
+function checkAndIncrementLimit(req, isPremium) {
   const day = todayKey();
   const ip = getClientIp(req);
-  const ipKey = `${ip}|${day}`;
+  const tier = isPremium ? 'premium' : 'free';
+  const ipKey = `${ip}|${day}|${tier}`;
+  const perIpMax = isPremium ? MAX_PREMIUM_PER_IP_PER_DAY : MAX_FREE_PER_IP_PER_DAY;
 
   const globalCount = globalUsageStore.get(day) || 0;
   if (globalCount >= MAX_GLOBAL_PER_DAY) {
@@ -59,18 +65,16 @@ function checkAndIncrementLimit(req) {
   }
 
   const ipCount = usageStore.get(ipKey) || 0;
-  if (ipCount >= MAX_PER_IP_PER_DAY) {
-    return { allowed: false, reason: 'ip' };
+  if (ipCount >= perIpMax) {
+    return { allowed: false, reason: isPremium ? 'ip_premium' : 'ip_free' };
   }
 
   usageStore.set(ipKey, ipCount + 1);
   globalUsageStore.set(day, globalCount + 1);
 
-  // Beres-beres kecil biar Map tidak membengkak tanpa batas kalau function
-  // hidup lama (bukan mekanisme wajib, cuma jaga-jaga).
   if (usageStore.size > 5000) usageStore.clear();
 
-  return { allowed: true };
+  return { allowed: true, remaining: perIpMax - (ipCount + 1) };
 }
 // ---------------------------------------------------------------------------
 
@@ -81,16 +85,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method tidak diizinkan. Gunakan POST.' });
   }
 
-  // --- 1b. Cek rate limit sebelum panggil AI (biar hemat biaya) ---
-  const limitCheck = checkAndIncrementLimit(req);
-  if (!limitCheck.allowed) {
-    const msg = limitCheck.reason === 'ip'
-      ? 'Kamu sudah mencapai batas generate hari ini. Coba lagi besok ya 🙏'
-      : 'Layanan sedang penuh untuk hari ini. Coba lagi besok ya 🙏';
-    return res.status(429).json({ error: msg });
-  }
-
-  // --- 2. Ambil API key dari environment variable, bukan dari kode ---
+  // --- 2. Ambil API key dari environment variable ---
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({
@@ -107,7 +102,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Body request bukan JSON yang valid.' });
     }
   }
-  const { message, situation, tone, media } = body || {};
+  const { message, situation, tone, media, accessCode } = body || {};
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'Field "message" wajib diisi.' });
@@ -118,6 +113,45 @@ module.exports = async function handler(req, res) {
 
   const safeTone = typeof tone === 'string' && tone.trim() ? tone.trim() : 'safe';
   const safeMedia = typeof media === 'string' && media.trim() ? media.trim() : 'whatsapp';
+  const situationLower = situation.trim().toLowerCase();
+  const cleanCode = typeof accessCode === 'string' ? accessCode.trim().toUpperCase() : '';
+
+  // --- 3b. Cek status premium (kalau ada kode yang dikirim) ---
+  let isPremium = false;
+  if (cleanCode) {
+    try {
+      const codeCheck = await isCodeValid(cleanCode);
+      isPremium = codeCheck.valid;
+    } catch (err) {
+      // Kalau Redis belum diset / error koneksi, JANGAN block seluruh app —
+      // anggap saja user ini free untuk request ini, tapi catat di log biar
+      // kamu tahu ada masalah konfigurasi.
+      console.error('Gagal cek kode premium (dianggap free):', err.message);
+      isPremium = false;
+    }
+  }
+
+  // --- 3c. Kalau bukan premium, cek apakah situasi ini termasuk gratisan ---
+  if (!isPremium && !FREE_SITUATIONS.includes(situationLower)) {
+    return res.status(403).json({
+      error: 'Situasi ini khusus untuk user premium. Upgrade dulu untuk akses semua fitur ya 🔓',
+      needsUpgrade: true,
+    });
+  }
+
+  // --- 3d. Cek rate limit sesuai tier ---
+  const limitCheck = checkAndIncrementLimit(req, isPremium);
+  if (!limitCheck.allowed) {
+    let msg;
+    if (limitCheck.reason === 'ip_free') {
+      msg = 'Kuota gratis kamu hari ini sudah habis. Upgrade buat generate lebih banyak, atau coba lagi besok ya 🙏';
+    } else if (limitCheck.reason === 'ip_premium') {
+      msg = 'Kamu sudah mencapai batas generate hari ini. Coba lagi besok ya 🙏';
+    } else {
+      msg = 'Layanan sedang penuh untuk hari ini. Coba lagi besok ya 🙏';
+    }
+    return res.status(429).json({ error: msg, needsUpgrade: limitCheck.reason === 'ip_free' });
+  }
 
   // --- 4. Susun prompt ---
   const systemPrompt = `Kamu adalah asisten yang membantu pekerja dan fresh graduate Indonesia usia 20-30 tahun menyusun pesan singkat untuk HR atau recruiter.
@@ -179,7 +213,7 @@ Buatkan 3 versi pesan (safe, confident, strategic) sesuai semua aturan di atas.`
       .join('')
       .trim();
 
-    // --- 6. Parse JSON dari jawaban model (dengan pembersihan ringan jaga-jaga) ---
+    // --- 6. Parse JSON dari jawaban model ---
     let parsed;
     try {
       const cleaned = rawText
@@ -201,11 +235,18 @@ Buatkan 3 versi pesan (safe, confident, strategic) sesuai semua aturan di atas.`
       });
     }
 
+    // --- 6b. Kalau user premium, catat pemakaian kodenya ---
+    if (isPremium && cleanCode) {
+      incrementCodeUsage(cleanCode); // sengaja tidak di-await ketat, jangan sampai gagalin response utama
+    }
+
     // --- 7. Kirim hasil bersih ke frontend ---
     return res.status(200).json({
       safe: String(parsed.safe).trim(),
       confident: String(parsed.confident).trim(),
       strategic: String(parsed.strategic).trim(),
+      isPremium,
+      remainingToday: limitCheck.remaining,
     });
   } catch (err) {
     console.error('Handler error:', err);
