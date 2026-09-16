@@ -258,6 +258,41 @@
   }
   @keyframes spin{to{transform:rotate(360deg);}}
   #generateBtn:disabled, #clGenerateBtn:disabled{opacity:.6;cursor:not-allowed;}
+  .chat-bubble{
+    max-width:85%;
+    padding:12px 14px;
+    border-radius:var(--radius-md);
+    font-size:14px;
+    line-height:1.55;
+    white-space:pre-wrap;
+  }
+  .chat-bubble-assistant{
+    align-self:flex-start;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-bottom-left-radius:4px;
+  }
+  .chat-bubble-user{
+    align-self:flex-end;
+    background:var(--ink);
+    color:#fff;
+    border-bottom-right-radius:4px;
+  }
+  .review-score{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--violet-soft);color:var(--violet);
+    padding:8px 14px;border-radius:100px;
+    font-weight:700;font-size:15px;margin-bottom:14px;
+  }
+  .review-section{margin-bottom:14px;}
+  .review-section h4{font-size:13px;margin:0 0 6px;color:var(--ink);}
+  .review-section ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.6;}
+  .review-rewrite{
+    background:var(--surface-2);border-radius:var(--radius-sm);
+    padding:10px 12px;margin-bottom:8px;font-size:13px;
+  }
+  .review-rewrite .before{color:#C0392B;text-decoration:line-through;opacity:.8;}
+  .review-rewrite .after{color:var(--green);font-weight:600;}
 
   /* RESULT */
   .tabbar{display:flex;background:var(--surface-2);border-radius:100px;padding:4px;margin:12px 0 16px;}
@@ -433,24 +468,24 @@
         <div class="txt"><strong>Cover Letter Generator</strong><span>Bikin cover letter dari ringkasan CV kamu</span></div>
         <div class="chev">›</div>
       </div>
-      <div class="toolrow" onclick="showToast('Segera hadir! Ini di roadmap berikutnya 🚧')" style="opacity:.55;">
+      <div class="toolrow" onclick="openCvMaker()">
         <div class="emoji">📋</div>
-        <div class="txt"><strong>AI CV Maker</strong><span>Segera hadir</span></div>
+        <div class="txt"><strong>AI CV Maker</strong><span>Susun CV rapi dari pengalaman kamu</span></div>
         <div class="chev">›</div>
       </div>
-      <div class="toolrow" onclick="showToast('Segera hadir! Ini di roadmap berikutnya 🚧')" style="opacity:.55;">
+      <div class="toolrow" onclick="openCvChecker()">
         <div class="emoji">🔍</div>
-        <div class="txt"><strong>CV Checker & Improvement</strong><span>Segera hadir</span></div>
+        <div class="txt"><strong>CV Checker & Improvement</strong><span>Cek skor CV kamu + saran perbaikan</span></div>
         <div class="chev">›</div>
       </div>
-      <div class="toolrow" onclick="showToast('Segera hadir! Ini di roadmap berikutnya 🚧')" style="opacity:.55;">
+      <div class="toolrow" onclick="openInterviewSetup()">
         <div class="emoji">🎤</div>
-        <div class="txt"><strong>Interview Practice</strong><span>Segera hadir</span></div>
+        <div class="txt"><strong>Interview Practice</strong><span>Latihan wawancara interaktif sama AI</span></div>
         <div class="chev">›</div>
       </div>
-      <div class="toolrow" onclick="showToast('Segera hadir! Ini di roadmap berikutnya 🚧')" style="opacity:.55;">
+      <div class="toolrow" onclick="openOfferAnalyzer()">
         <div class="emoji">📊</div>
-        <div class="txt"><strong>Job Offer Analyzer</strong><span>Segera hadir</span></div>
+        <div class="txt"><strong>Job Offer Analyzer</strong><span>Cek red flag & pertanyaan sebelum tanda tangan</span></div>
         <div class="chev">›</div>
       </div>
     </div>
@@ -476,7 +511,7 @@
       </div>
     </div>
 
-    <a href="http://lynk.id/hrtalk/r578lzkzx37w" target="_blank" class="btn btn-primary btn-block" style="margin-bottom:20px;">Beli akses Premium</a>
+    <a href="PASTE_LINK_LYNKID_ATAU_MAYAR_DI_SINI" target="_blank" class="btn btn-primary btn-block" style="margin-bottom:20px;">Beli akses Premium</a>
 
     <div class="card">
       <div class="field" style="margin-bottom:10px;">
@@ -656,6 +691,177 @@
       </div>
     </div>
     <div class="assumptionnote">✨ Dibuat oleh AI berdasarkan ringkasan yang kamu isi — tetap cek ulang sebelum dikirim ke recruiter.</div>
+  </section>
+
+  <!-- CV MAKER: FORM -->
+  <section class="screen" id="screen-cvmaker">
+    <h1 class="form-title">📋 AI CV Maker</h1>
+    <p class="form-sub">Isi pengalaman kamu apa adanya, biar AI susun jadi CV yang rapi.</p>
+    <form id="cvMakerForm" onsubmit="return handleGenerateCvMaker(event)">
+      <div class="field">
+        <label>Nama lengkap</label>
+        <input type="text" id="cvmName" placeholder="Contoh: Budi Santoso">
+      </div>
+      <div class="field">
+        <label>Kontak <span class="opt">(opsional — email/no HP/lokasi)</span></label>
+        <input type="text" id="cvmContact" placeholder="Contoh: budi@email.com · 0812xxxx · Jakarta">
+      </div>
+      <div class="field">
+        <label>Target posisi <span class="opt">(opsional)</span></label>
+        <input type="text" id="cvmTargetPosition" placeholder="Contoh: Social Media Specialist">
+      </div>
+      <div class="field">
+        <label>Pengalaman kerja</label>
+        <textarea id="cvmExperience" style="min-height:130px;" placeholder="Tulis bebas semua pengalaman kamu, AI yang rapikan. Contoh: Content creator di Startup X selama 1.5 tahun, ngurus Instagram & TikTok, engagement naik dari 2% ke 5%..."></textarea>
+      </div>
+      <div class="field">
+        <label>Pendidikan <span class="opt">(opsional)</span></label>
+        <textarea id="cvmEducation" placeholder="Contoh: S1 Ilmu Komunikasi, Universitas X, 2019-2023"></textarea>
+      </div>
+      <div class="field">
+        <label>Skill/keahlian <span class="opt">(opsional)</span></label>
+        <textarea id="cvmSkills" placeholder="Contoh: Canva, CapCut, copywriting, analisis data sosmed"></textarea>
+      </div>
+      <div class="field">
+        <label>Catatan buat ringkasan profil <span class="opt">(opsional)</span></label>
+        <textarea id="cvmSummaryHint" placeholder="Ada hal spesifik yang mau ditonjolkan di ringkasan? Boleh kosong."></textarea>
+      </div>
+      <p class="errmsg" id="cvmFormErr">Nama dan pengalaman kerja wajib diisi ya.</p>
+      <p class="errmsg" id="cvmApiErr"></p>
+      <div id="cvmLoadingState" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--ink-soft);font-weight:600;">
+        <span class="spinner" aria-hidden="true"></span> AI sedang membaca konteks…
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="cvmGenerateBtn" style="margin-top:8px;">Generate CV</button>
+    </form>
+  </section>
+
+  <!-- CV MAKER: RESULT -->
+  <section class="screen" id="screen-cvmaker-result">
+    <h1 class="form-title">CV kamu siap 🎉</h1>
+    <p class="form-sub">Cek dulu sebelum dikirim ke recruiter.</p>
+    <div class="resultcard" id="cvmResultCard">
+      <div id="cvmResultPreview"></div>
+      <div class="actionbar">
+        <button class="copybtn" onclick="copyCvMaker()">📋 Copy</button>
+        <button onclick="regenerateCvMaker()" id="cvmRegenBtn">🔁 Regenerate</button>
+        <button onclick="downloadCvMakerDocx()">⬇️ Download Word</button>
+      </div>
+    </div>
+    <div class="assumptionnote">✨ Dibuat oleh AI dari input kamu — cek ulang detail sebelum dipakai melamar.</div>
+  </section>
+
+  <!-- CV CHECKER: FORM -->
+  <section class="screen" id="screen-cvchecker">
+    <h1 class="form-title">🔍 CV Checker & Improvement</h1>
+    <p class="form-sub">Paste isi CV kamu, AI kasih skor + saran perbaikan konkret.</p>
+    <form id="cvCheckerForm" onsubmit="return handleGenerateCvChecker(event)">
+      <div class="field">
+        <label>Isi CV kamu</label>
+        <textarea id="cvcText" style="min-height:160px;" placeholder="Paste semua isi CV kamu di sini (boleh dari Word/PDF, tinggal copy-paste teksnya)"></textarea>
+      </div>
+      <div class="field">
+        <label>Target posisi <span class="opt">(opsional, biar relevan)</span></label>
+        <input type="text" id="cvcTargetPosition" placeholder="Contoh: Data Analyst">
+      </div>
+      <p class="errmsg" id="cvcFormErr">Isi CV wajib diisi ya.</p>
+      <p class="errmsg" id="cvcApiErr"></p>
+      <div id="cvcLoadingState" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--ink-soft);font-weight:600;">
+        <span class="spinner" aria-hidden="true"></span> AI sedang membaca konteks…
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="cvcGenerateBtn" style="margin-top:8px;">Cek CV saya</button>
+    </form>
+  </section>
+
+  <!-- CV CHECKER: RESULT -->
+  <section class="screen" id="screen-cvchecker-result">
+    <h1 class="form-title">Hasil review CV kamu</h1>
+    <div class="resultcard" id="cvcResultCard">
+      <div id="cvcResultPreview"></div>
+      <div class="actionbar">
+        <button class="copybtn" onclick="copyCvChecker()">📋 Copy</button>
+        <button onclick="regenerateCvChecker()" id="cvcRegenBtn">🔁 Regenerate</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- JOB OFFER ANALYZER: FORM -->
+  <section class="screen" id="screen-offer">
+    <h1 class="form-title">📊 Job Offer Analyzer</h1>
+    <p class="form-sub">Paste teks atau upload file offer letter kamu.</p>
+    <form id="offerForm" onsubmit="return handleGenerateOffer(event)">
+      <div class="field">
+        <label>Upload file <span class="opt">(PDF/foto, opsional kalau paste teks di bawah)</span></label>
+        <input type="file" id="offerFile" accept=".pdf,image/png,image/jpeg,image/webp" onchange="handleOfferFileChange(event)">
+        <div id="offerFileInfo" style="font-size:12px;color:var(--ink-soft);margin-top:6px;"></div>
+      </div>
+      <div class="field">
+        <label>Atau paste teks offer letter <span class="opt">(opsional kalau sudah upload file)</span></label>
+        <textarea id="offerText" style="min-height:120px;" placeholder="Paste isi offer letter di sini"></textarea>
+      </div>
+      <div class="field">
+        <label>Konteks tambahan <span class="opt">(opsional — gaji sekarang, situasi kamu, dll)</span></label>
+        <textarea id="offerContext" placeholder="Contoh: ini offer pertama saya, gaji sekarang 6 juta"></textarea>
+      </div>
+      <p class="errmsg" id="offerFormErr">Isi teks ATAU upload file dulu ya.</p>
+      <p class="errmsg" id="offerApiErr"></p>
+      <div id="offerLoadingState" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--ink-soft);font-weight:600;">
+        <span class="spinner" aria-hidden="true"></span> AI sedang membaca konteks…
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="offerGenerateBtn" style="margin-top:8px;">Analisis offer ini</button>
+    </form>
+  </section>
+
+  <!-- JOB OFFER ANALYZER: RESULT -->
+  <section class="screen" id="screen-offer-result">
+    <h1 class="form-title">Hasil analisis offer kamu</h1>
+    <div class="resultcard" id="offerResultCard">
+      <div id="offerResultPreview"></div>
+      <div class="actionbar">
+        <button class="copybtn" onclick="copyOffer()">📋 Copy</button>
+        <button onclick="regenerateOffer()" id="offerRegenBtn">🔁 Regenerate</button>
+      </div>
+    </div>
+    <div class="assumptionnote">⚠️ Analisis ini berdasarkan isi dokumen yang kamu kasih, bukan riset gaji pasar real-time. Tetap cek referensi gaji dari sumber lain juga ya.</div>
+  </section>
+
+  <!-- INTERVIEW PRACTICE: SETUP -->
+  <section class="screen" id="screen-interview-setup">
+    <h1 class="form-title">🎤 Interview Practice</h1>
+    <p class="form-sub">Latihan wawancara interaktif — AI jadi interviewer-nya.</p>
+    <form id="interviewSetupForm" onsubmit="return handleStartInterview(event)">
+      <div class="field">
+        <label>Posisi yang mau dilatih</label>
+        <input type="text" id="ivPosition" placeholder="Contoh: Marketing Executive">
+      </div>
+      <div class="field">
+        <label>Level</label>
+        <div class="seg" id="segIvLevel">
+          <button type="button" data-val="fresh graduate" class="active">Fresh Graduate</button>
+          <button type="button" data-val="berpengalaman">Berpengalaman</button>
+        </div>
+      </div>
+      <p class="errmsg" id="ivFormErr">Posisi wajib diisi ya.</p>
+      <p class="errmsg" id="ivApiErr"></p>
+      <div id="ivLoadingState" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--ink-soft);font-weight:600;">
+        <span class="spinner" aria-hidden="true"></span> AI sedang menyiapkan sesi…
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="ivStartBtn" style="margin-top:8px;">Mulai latihan</button>
+    </form>
+  </section>
+
+  <!-- INTERVIEW PRACTICE: CHAT -->
+  <section class="screen" id="screen-interview-chat">
+    <h1 class="form-title" id="ivChatTitle">Sesi latihan</h1>
+    <div id="ivChatLog" style="display:flex;flex-direction:column;gap:10px;margin:10px 0 14px;"></div>
+    <div id="ivTypingIndicator" style="display:none;font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">AI sedang mengetik…</div>
+    <div class="field">
+      <textarea id="ivAnswerInput" placeholder="Ketik jawaban kamu di sini..." style="min-height:70px;"></textarea>
+    </div>
+    <div class="actionbar" style="margin-top:0;">
+      <button class="copybtn" onclick="sendInterviewAnswer()" id="ivSendBtn">Kirim jawaban</button>
+      <button onclick="endInterview()" id="ivEndBtn">🏁 Minta feedback & selesai</button>
+      <button onclick="resetInterview()">🔄 Sesi baru</button>
+    </div>
   </section>
 
 </div>
@@ -1129,10 +1335,7 @@ async function verifyUpgradeCode(){
         const id = state.pendingSituation;
         state.pendingSituation = null;
         openSituation(id);
-      } else if(state.pendingFeature === 'coverletter'){
-        state.pendingFeature = null;
-        goTo('coverletter');
-      } else {
+      } else if(!resumePendingFeature()){
         goTo('home');
       }
     }, 900);
@@ -1279,6 +1482,538 @@ function downloadCoverLetterDocx(){
 
 function escapeHtml(str){
   return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Ubah teks multi-baris dari backend (baris biasa = heading entri, baris
+// diawali "• " = bullet) jadi HTML rapi. Dipakai CV Maker.
+function formatMultilineToHtml(text){
+  if(!text) return '';
+  const lines = text.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  let html = '';
+  let inList = false;
+  lines.forEach(line=>{
+    if(line.startsWith('•')){
+      if(!inList){ html += '<ul style="margin:4px 0 10px 0;padding-left:18px;">'; inList = true; }
+      html += `<li style="margin-bottom:4px;">${escapeHtml(line.replace(/^•\s*/,''))}</li>`;
+    } else {
+      if(inList){ html += '</ul>'; inList = false; }
+      html += `<p style="margin:0 0 6px 0;font-weight:600;">${escapeHtml(line)}</p>`;
+    }
+  });
+  if(inList) html += '</ul>';
+  return html;
+}
+
+// Dipanggil setelah user berhasil masukin kode di layar Upgrade — arahkan
+// balik ke fitur yang tadinya mau dibuka (dipakai verifyUpgradeCode()).
+function resumePendingFeature(){
+  const map = {
+    coverletter: ()=>goTo('coverletter'),
+    cvmaker: openCvMaker,
+    cvchecker: openCvChecker,
+    offer: openOfferAnalyzer,
+    interview: openInterviewSetup,
+  };
+  const feature = state.pendingFeature;
+  state.pendingFeature = null;
+  if(feature && map[feature]){ map[feature](); return true; }
+  return false;
+}
+
+/* ---------- 8d. AI CV MAKER (premium-only) ---------- */
+let cvmLastRequest = null;
+let cvmLastResult = null;
+
+function openCvMaker(){
+  if(!isPremiumUser()){ state.pendingFeature = 'cvmaker'; goTo('upgrade'); return; }
+  goTo('cvmaker');
+}
+
+function handleGenerateCvMaker(e){
+  e.preventDefault();
+  const name = document.getElementById('cvmName').value.trim();
+  const contact = document.getElementById('cvmContact').value.trim();
+  const targetPosition = document.getElementById('cvmTargetPosition').value.trim();
+  const experience = document.getElementById('cvmExperience').value.trim();
+  const education = document.getElementById('cvmEducation').value.trim();
+  const skills = document.getElementById('cvmSkills').value.trim();
+  const summaryHint = document.getElementById('cvmSummaryHint').value.trim();
+
+  const errEl = document.getElementById('cvmFormErr');
+  document.getElementById('cvmApiErr').style.display = 'none';
+  if(!name || !experience){ errEl.style.display = 'block'; return false; }
+  errEl.style.display = 'none';
+
+  const payload = { name, contact, targetPosition, experience, education, skills, summaryHint, accessCode: getStoredCode() };
+  cvmLastRequest = payload;
+  generateCvMakerViaAI(payload, {navigateOnSuccess:true});
+  return false;
+}
+
+async function generateCvMakerViaAI(payload, opts){
+  opts = opts || {};
+  const btn = document.getElementById('cvmGenerateBtn');
+  const loadingEl = document.getElementById('cvmLoadingState');
+  const regenBtn = document.getElementById('cvmRegenBtn');
+
+  if(!opts.regenerating){ btn.disabled = true; loadingEl.style.display = 'flex'; }
+  else if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = '⏳ AI sedang membaca konteks…'; }
+
+  try{
+    const res = await fetch('/api/cv-maker', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    let data; try{ data = await res.json(); }catch(e){ data = null; }
+
+    if(!res.ok || !data || data.error){
+      if(data && data.needsUpgrade){ goTo('upgrade'); showToast(data.error || 'Butuh Premium buat lanjut 🔓'); return; }
+      throw new Error((data && data.error) || 'Gagal memuat respons dari AI.');
+    }
+
+    cvmLastResult = data;
+    renderCvMakerPreview(data);
+    if(opts.navigateOnSuccess) goTo('cvmaker-result');
+    if(opts.regenerating) showToast('Versi baru dari AI siap 🔁');
+
+  }catch(err){
+    console.error(err);
+    if(opts.regenerating){ showToast('Gagal regenerate, coba lagi ya'); }
+    else{
+      const errEl = document.getElementById('cvmApiErr');
+      errEl.textContent = '⚠️ ' + (err.message || 'Gagal menghubungi AI. Coba lagi ya.');
+      errEl.style.display = 'block';
+    }
+  }finally{
+    if(!opts.regenerating){ btn.disabled = false; loadingEl.style.display = 'none'; }
+    else if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔁 Regenerate'; }
+  }
+}
+
+function renderCvMakerPreview(data){
+  let html = `<h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;margin:0 0 2px;">${escapeHtml(data.name)}</h2>`;
+  if(data.contact) html += `<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;">${escapeHtml(data.contact)}</p>`;
+  html += `<div class="review-section"><h4>Ringkasan</h4><p style="font-size:13.5px;line-height:1.6;margin:0;">${escapeHtml(data.summary)}</p></div>`;
+  html += `<div class="review-section"><h4>Pengalaman Kerja</h4>${formatMultilineToHtml(data.experience)}</div>`;
+  if(data.education) html += `<div class="review-section"><h4>Pendidikan</h4>${formatMultilineToHtml(data.education)}</div>`;
+  if(data.skills) html += `<div class="review-section"><h4>Skill</h4>${formatMultilineToHtml(data.skills)}</div>`;
+  document.getElementById('cvmResultPreview').innerHTML = html;
+}
+
+function buildCvMakerPlainText(data){
+  return [
+    data.name, data.contact,
+    '', 'RINGKASAN', data.summary,
+    '', 'PENGALAMAN KERJA', data.experience,
+    data.education ? '\nPENDIDIKAN\n' + data.education : '',
+    data.skills ? '\nSKILL\n' + data.skills : '',
+  ].filter(Boolean).join('\n').trim();
+}
+
+function copyCvMaker(){
+  if(!cvmLastResult){ showToast('Belum ada CV buat di-copy'); return; }
+  copyText(buildCvMakerPlainText(cvmLastResult));
+}
+
+function regenerateCvMaker(){
+  if(!cvmLastRequest){ showToast('Belum ada permintaan sebelumnya'); return; }
+  generateCvMakerViaAI(cvmLastRequest, {regenerating:true});
+}
+
+function downloadCvMakerDocx(){
+  if(!cvmLastResult){ showToast('Belum ada CV buat di-download'); return; }
+  if(typeof htmlDocx === 'undefined'){ showToast('Gagal memuat komponen Word. Cek koneksi lalu coba lagi.'); return; }
+  const d = cvmLastResult;
+  const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+    <body style="font-family:Calibri, Arial, sans-serif; font-size:11.5pt; line-height:1.5;">
+      <h1 style="margin:0 0 2px;">${escapeHtml(d.name)}</h1>
+      ${d.contact ? `<p style="margin:0 0 14px;color:#555;">${escapeHtml(d.contact)}</p>` : ''}
+      <h3>Ringkasan</h3><p>${escapeHtml(d.summary)}</p>
+      <h3>Pengalaman Kerja</h3>${formatMultilineToHtml(d.experience)}
+      ${d.education ? `<h3>Pendidikan</h3>${formatMultilineToHtml(d.education)}` : ''}
+      ${d.skills ? `<h3>Skill</h3>${formatMultilineToHtml(d.skills)}` : ''}
+    </body></html>`;
+  try{
+    const blob = htmlDocx.asBlob(htmlContent);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `CV - ${d.name || 'saya'}.docx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Word file di-download ✅');
+  }catch(err){
+    console.error(err);
+    showToast('Gagal bikin file Word. Coba copy manual dulu ya.');
+  }
+}
+
+/* ---------- 8e. CV CHECKER & IMPROVEMENT (premium-only) ---------- */
+let cvcLastRequest = null;
+let cvcLastResult = null;
+
+function openCvChecker(){
+  if(!isPremiumUser()){ state.pendingFeature = 'cvchecker'; goTo('upgrade'); return; }
+  goTo('cvchecker');
+}
+
+function handleGenerateCvChecker(e){
+  e.preventDefault();
+  const cvText = document.getElementById('cvcText').value.trim();
+  const targetPosition = document.getElementById('cvcTargetPosition').value.trim();
+
+  const errEl = document.getElementById('cvcFormErr');
+  document.getElementById('cvcApiErr').style.display = 'none';
+  if(!cvText){ errEl.style.display = 'block'; return false; }
+  errEl.style.display = 'none';
+
+  const payload = { cvText, targetPosition, accessCode: getStoredCode() };
+  cvcLastRequest = payload;
+  generateCvCheckerViaAI(payload, {navigateOnSuccess:true});
+  return false;
+}
+
+async function generateCvCheckerViaAI(payload, opts){
+  opts = opts || {};
+  const btn = document.getElementById('cvcGenerateBtn');
+  const loadingEl = document.getElementById('cvcLoadingState');
+  const regenBtn = document.getElementById('cvcRegenBtn');
+
+  if(!opts.regenerating){ btn.disabled = true; loadingEl.style.display = 'flex'; }
+  else if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = '⏳ AI sedang membaca konteks…'; }
+
+  try{
+    const res = await fetch('/api/cv-checker', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    let data; try{ data = await res.json(); }catch(e){ data = null; }
+
+    if(!res.ok || !data || data.error){
+      if(data && data.needsUpgrade){ goTo('upgrade'); showToast(data.error || 'Butuh Premium buat lanjut 🔓'); return; }
+      throw new Error((data && data.error) || 'Gagal memuat respons dari AI.');
+    }
+
+    cvcLastResult = data;
+    renderCvCheckerPreview(data);
+    if(opts.navigateOnSuccess) goTo('cvchecker-result');
+    if(opts.regenerating) showToast('Versi baru dari AI siap 🔁');
+
+  }catch(err){
+    console.error(err);
+    if(opts.regenerating){ showToast('Gagal regenerate, coba lagi ya'); }
+    else{
+      const errEl = document.getElementById('cvcApiErr');
+      errEl.textContent = '⚠️ ' + (err.message || 'Gagal menghubungi AI. Coba lagi ya.');
+      errEl.style.display = 'block';
+    }
+  }finally{
+    if(!opts.regenerating){ btn.disabled = false; loadingEl.style.display = 'none'; }
+    else if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔁 Regenerate'; }
+  }
+}
+
+function renderCvCheckerPreview(data){
+  let html = `<div class="review-score">⭐ Skor: ${data.score}/10</div>`;
+  if(data.strengths && data.strengths.length){
+    html += `<div class="review-section"><h4>✅ Kelebihan</h4><ul>${data.strengths.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+  }
+  if(data.improvements && data.improvements.length){
+    html += `<div class="review-section"><h4>🔧 Perlu diperbaiki</h4><ul>${data.improvements.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+  }
+  if(data.rewriteSamples && data.rewriteSamples.length){
+    html += `<div class="review-section"><h4>✍️ Contoh perbaikan kalimat</h4>`;
+    data.rewriteSamples.forEach(s=>{
+      html += `<div class="review-rewrite"><div class="before">${escapeHtml(s.before)}</div><div class="after">→ ${escapeHtml(s.after)}</div></div>`;
+    });
+    html += `</div>`;
+  }
+  document.getElementById('cvcResultPreview').innerHTML = html;
+}
+
+function buildCvCheckerPlainText(data){
+  let parts = [`Skor: ${data.score}/10`, ''];
+  if(data.strengths && data.strengths.length){ parts.push('KELEBIHAN'); parts.push(...data.strengths.map(s=>'- '+s)); parts.push(''); }
+  if(data.improvements && data.improvements.length){ parts.push('PERLU DIPERBAIKI'); parts.push(...data.improvements.map(s=>'- '+s)); parts.push(''); }
+  if(data.rewriteSamples && data.rewriteSamples.length){
+    parts.push('CONTOH PERBAIKAN');
+    data.rewriteSamples.forEach(s=> parts.push(`Sebelum: ${s.before}\nSesudah: ${s.after}\n`));
+  }
+  return parts.join('\n').trim();
+}
+
+function copyCvChecker(){
+  if(!cvcLastResult){ showToast('Belum ada hasil buat di-copy'); return; }
+  copyText(buildCvCheckerPlainText(cvcLastResult));
+}
+
+function regenerateCvChecker(){
+  if(!cvcLastRequest){ showToast('Belum ada permintaan sebelumnya'); return; }
+  generateCvCheckerViaAI(cvcLastRequest, {regenerating:true});
+}
+
+/* ---------- 8f. JOB OFFER ANALYZER (premium-only) ---------- */
+let offerLastRequest = null;
+let offerLastResult = null;
+let offerFileBase64 = '';
+let offerFileMediaType = '';
+
+function openOfferAnalyzer(){
+  if(!isPremiumUser()){ state.pendingFeature = 'offer'; goTo('upgrade'); return; }
+  goTo('offer');
+}
+
+function handleOfferFileChange(event){
+  const file = event.target.files && event.target.files[0];
+  const infoEl = document.getElementById('offerFileInfo');
+  offerFileBase64 = '';
+  offerFileMediaType = '';
+  if(!file){ infoEl.textContent = ''; return; }
+
+  if(file.size > 5 * 1024 * 1024){
+    infoEl.textContent = '⚠️ File terlalu besar (maks 5MB). Pilih file lain.';
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(){
+    const result = reader.result || '';
+    const base64 = result.split(',')[1] || '';
+    offerFileBase64 = base64;
+    offerFileMediaType = file.type;
+    infoEl.textContent = `✅ ${file.name} (${(file.size/1024).toFixed(0)} KB) siap dianalisis`;
+  };
+  reader.onerror = function(){
+    infoEl.textContent = '⚠️ Gagal membaca file. Coba file lain.';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleGenerateOffer(e){
+  e.preventDefault();
+  const offerText = document.getElementById('offerText').value.trim();
+  const currentSituation = document.getElementById('offerContext').value.trim();
+
+  const errEl = document.getElementById('offerFormErr');
+  document.getElementById('offerApiErr').style.display = 'none';
+  if(!offerText && !offerFileBase64){ errEl.style.display = 'block'; return false; }
+  errEl.style.display = 'none';
+
+  const payload = {
+    offerText: offerText || undefined,
+    fileBase64: offerFileBase64 || undefined,
+    fileMediaType: offerFileMediaType || undefined,
+    currentSituation,
+    accessCode: getStoredCode(),
+  };
+  offerLastRequest = payload;
+  generateOfferViaAI(payload, {navigateOnSuccess:true});
+  return false;
+}
+
+async function generateOfferViaAI(payload, opts){
+  opts = opts || {};
+  const btn = document.getElementById('offerGenerateBtn');
+  const loadingEl = document.getElementById('offerLoadingState');
+  const regenBtn = document.getElementById('offerRegenBtn');
+
+  if(!opts.regenerating){ btn.disabled = true; loadingEl.style.display = 'flex'; }
+  else if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = '⏳ AI sedang membaca konteks…'; }
+
+  try{
+    const res = await fetch('/api/job-offer-analyzer', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    let data; try{ data = await res.json(); }catch(e){ data = null; }
+
+    if(!res.ok || !data || data.error){
+      if(data && data.needsUpgrade){ goTo('upgrade'); showToast(data.error || 'Butuh Premium buat lanjut 🔓'); return; }
+      throw new Error((data && data.error) || 'Gagal memuat respons dari AI.');
+    }
+
+    offerLastResult = data;
+    renderOfferPreview(data);
+    if(opts.navigateOnSuccess) goTo('offer-result');
+    if(opts.regenerating) showToast('Versi baru dari AI siap 🔁');
+
+  }catch(err){
+    console.error(err);
+    if(opts.regenerating){ showToast('Gagal regenerate, coba lagi ya'); }
+    else{
+      const errEl = document.getElementById('offerApiErr');
+      errEl.textContent = '⚠️ ' + (err.message || 'Gagal menghubungi AI. Coba lagi ya.');
+      errEl.style.display = 'block';
+    }
+  }finally{
+    if(!opts.regenerating){ btn.disabled = false; loadingEl.style.display = 'none'; }
+    else if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔁 Regenerate'; }
+  }
+}
+
+function renderOfferPreview(data){
+  let html = `<div class="review-section"><p style="font-size:14px;line-height:1.6;margin:0;">${escapeHtml(data.summary)}</p></div>`;
+  if(data.salaryAnalysis){
+    html += `<div class="review-section"><h4>💰 Soal gaji</h4><p style="font-size:13.5px;line-height:1.6;margin:0;">${escapeHtml(data.salaryAnalysis)}</p></div>`;
+  }
+  if(data.benefitsAnalysis){
+    html += `<div class="review-section"><h4>🎁 Soal benefit</h4><p style="font-size:13.5px;line-height:1.6;margin:0;">${escapeHtml(data.benefitsAnalysis)}</p></div>`;
+  }
+  if(data.redFlags && data.redFlags.length){
+    html += `<div class="review-section"><h4>🚩 Perlu diwaspadai</h4><ul>${data.redFlags.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+  }
+  if(data.recommendedQuestions && data.recommendedQuestions.length){
+    html += `<div class="review-section"><h4>❓ Tanyakan ke HR</h4><ul>${data.recommendedQuestions.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+  }
+  html += `<div class="review-score" style="display:block;">📌 ${escapeHtml(data.verdict)}</div>`;
+  document.getElementById('offerResultPreview').innerHTML = html;
+}
+
+function buildOfferPlainText(data){
+  let parts = [data.summary, ''];
+  if(data.salaryAnalysis) parts.push('SOAL GAJI', data.salaryAnalysis, '');
+  if(data.benefitsAnalysis) parts.push('SOAL BENEFIT', data.benefitsAnalysis, '');
+  if(data.redFlags && data.redFlags.length){ parts.push('PERLU DIWASPADAI'); parts.push(...data.redFlags.map(s=>'- '+s)); parts.push(''); }
+  if(data.recommendedQuestions && data.recommendedQuestions.length){ parts.push('TANYAKAN KE HR'); parts.push(...data.recommendedQuestions.map(s=>'- '+s)); parts.push(''); }
+  parts.push('KESIMPULAN', data.verdict);
+  return parts.join('\n').trim();
+}
+
+function copyOffer(){
+  if(!offerLastResult){ showToast('Belum ada hasil buat di-copy'); return; }
+  copyText(buildOfferPlainText(offerLastResult));
+}
+
+function regenerateOffer(){
+  if(!offerLastRequest){ showToast('Belum ada permintaan sebelumnya'); return; }
+  generateOfferViaAI(offerLastRequest, {regenerating:true});
+}
+
+/* ---------- 8g. INTERVIEW PRACTICE (premium-only, interactive chat) ---------- */
+let ivState = { position:'', level:'fresh graduate', history:[], ended:false };
+
+function openInterviewSetup(){
+  if(!isPremiumUser()){ state.pendingFeature = 'interview'; goTo('upgrade'); return; }
+  goTo('interview-setup');
+}
+
+function handleStartInterview(e){
+  e.preventDefault();
+  const position = document.getElementById('ivPosition').value.trim();
+  const level = getSegVal('segIvLevel');
+
+  const errEl = document.getElementById('ivFormErr');
+  document.getElementById('ivApiErr').style.display = 'none';
+  if(!position){ errEl.style.display = 'block'; return false; }
+  errEl.style.display = 'none';
+
+  ivState = { position, level, history: [], ended: false };
+  document.getElementById('ivChatLog').innerHTML = '';
+
+  const btn = document.getElementById('ivStartBtn');
+  const loadingEl = document.getElementById('ivLoadingState');
+  btn.disabled = true; loadingEl.style.display = 'flex';
+
+  callInterviewApi([]).then(reply=>{
+    if(reply === null) return; // error sudah ditangani di callInterviewApi
+    ivState.history.push({role:'user', content:'Mulai sesi latihan wawancara.'});
+    ivState.history.push({role:'assistant', content: reply});
+    document.getElementById('ivChatTitle').textContent = `Latihan: ${position}`;
+    appendChatBubble('assistant', reply);
+    goTo('interview-chat');
+  }).finally(()=>{
+    btn.disabled = false; loadingEl.style.display = 'none';
+  });
+
+  return false;
+}
+
+async function callInterviewApi(history){
+  try{
+    const res = await fetch('/api/interview-practice', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ position: ivState.position, level: ivState.level, history, accessCode: getStoredCode() }),
+    });
+    let data; try{ data = await res.json(); }catch(e){ data = null; }
+
+    if(!res.ok || !data || data.error){
+      if(data && data.needsUpgrade){ goTo('upgrade'); showToast(data.error || 'Butuh Premium buat lanjut 🔓'); return null; }
+      const errEl = document.getElementById('ivApiErr');
+      if(errEl){ errEl.textContent = '⚠️ ' + ((data && data.error) || 'Gagal menghubungi AI.'); errEl.style.display = 'block'; }
+      showToast((data && data.error) || 'Gagal menghubungi AI');
+      return null;
+    }
+    return data.reply;
+  }catch(err){
+    console.error(err);
+    showToast('Gagal menghubungi server. Coba lagi ya.');
+    return null;
+  }
+}
+
+function appendChatBubble(role, text){
+  const log = document.getElementById('ivChatLog');
+  const div = document.createElement('div');
+  div.className = 'chat-bubble ' + (role==='assistant' ? 'chat-bubble-assistant' : 'chat-bubble-user');
+  div.textContent = text;
+  log.appendChild(div);
+  div.scrollIntoView({behavior:'smooth', block:'end'});
+}
+
+function sendInterviewAnswer(){
+  if(ivState.ended){ showToast('Sesi ini sudah selesai. Mulai sesi baru ya.'); return; }
+  const input = document.getElementById('ivAnswerInput');
+  const text = input.value.trim();
+  if(!text) return;
+
+  appendChatBubble('user', text);
+  ivState.history.push({role:'user', content:text});
+  input.value = '';
+
+  const typing = document.getElementById('ivTypingIndicator');
+  const sendBtn = document.getElementById('ivSendBtn');
+  typing.style.display = 'block';
+  sendBtn.disabled = true;
+
+  callInterviewApi(ivState.history).then(reply=>{
+    if(reply === null) return;
+    ivState.history.push({role:'assistant', content: reply});
+    appendChatBubble('assistant', reply);
+  }).finally(()=>{
+    typing.style.display = 'none';
+    sendBtn.disabled = false;
+  });
+}
+
+function endInterview(){
+  if(ivState.ended) return;
+  const closingMsg = 'Tolong beri evaluasi/feedback keseluruhan untuk sesi latihan ini.';
+  appendChatBubble('user', closingMsg);
+  ivState.history.push({role:'user', content: closingMsg});
+
+  const typing = document.getElementById('ivTypingIndicator');
+  const sendBtn = document.getElementById('ivSendBtn');
+  const endBtn = document.getElementById('ivEndBtn');
+  typing.style.display = 'block';
+  sendBtn.disabled = true; endBtn.disabled = true;
+
+  callInterviewApi(ivState.history).then(reply=>{
+    if(reply === null) return;
+    ivState.history.push({role:'assistant', content: reply});
+    appendChatBubble('assistant', reply);
+    ivState.ended = true;
+    document.getElementById('ivAnswerInput').disabled = true;
+    document.getElementById('ivAnswerInput').placeholder = 'Sesi sudah selesai — klik "Sesi baru" buat mulai lagi.';
+  }).finally(()=>{
+    typing.style.display = 'none';
+    sendBtn.disabled = false; endBtn.disabled = false;
+  });
+}
+
+function resetInterview(){
+  ivState = { position:'', level:'fresh graduate', history:[], ended:false };
+  document.getElementById('ivChatLog').innerHTML = '';
+  document.getElementById('ivAnswerInput').disabled = false;
+  document.getElementById('ivAnswerInput').placeholder = 'Ketik jawaban kamu di sini...';
+  goTo('interview-setup');
 }
 
 function renderResult(){
