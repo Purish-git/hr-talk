@@ -17,6 +17,7 @@
 // di server, dari environment variable ANTHROPIC_API_KEY.
 
 const { isCodeValid, incrementCodeUsage } = require('./_lib/redis');
+const { parseJsonFromModel } = require('./_lib/aiJson');
 
 const AI_MODEL = 'claude-haiku-4-5-20251001';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -193,7 +194,7 @@ Buatkan 3 versi pesan (safe, confident, strategic) sesuai semua aturan di atas.`
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 1600,
+        max_tokens: 2000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -216,13 +217,9 @@ Buatkan 3 versi pesan (safe, confident, strategic) sesuai semua aturan di atas.`
     // --- 6. Parse JSON dari jawaban model ---
     let parsed;
     try {
-      const cleaned = rawText
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/, '')
-        .replace(/```\s*$/, '')
-        .trim();
-      parsed = JSON.parse(cleaned);
-    } catch (e) {
+      parsed = parseJsonFromModel(rawText);
+    } catch (e) { /* parsed stays undefined, handled below */ }
+    if (!parsed) {
       console.error('Gagal parse JSON dari AI:', rawText);
       return res.status(502).json({
         error: 'AI mengembalikan format yang tidak terduga. Coba regenerate.',
