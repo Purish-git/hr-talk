@@ -1595,7 +1595,7 @@ function renderCvMakerPreview(data){
   html += `<div class="review-section"><h4>Ringkasan</h4><p style="font-size:13.5px;line-height:1.6;margin:0;">${escapeHtml(data.summary)}</p></div>`;
   html += `<div class="review-section"><h4>Pengalaman Kerja</h4>${formatMultilineToHtml(data.experience)}</div>`;
   if(data.education) html += `<div class="review-section"><h4>Pendidikan</h4>${formatMultilineToHtml(data.education)}</div>`;
-  if(data.skills) html += `<div class="review-section"><h4>Skill</h4>${formatMultilineToHtml(data.skills)}</div>`;
+  if(data.skills) html += `<div class="review-section"><h4>Skill</h4><p style="font-size:13.5px;line-height:1.6;margin:0;">${escapeHtml(data.skills)}</p></div>`;
   document.getElementById('cvmResultPreview').innerHTML = html;
 }
 
@@ -1630,7 +1630,7 @@ function downloadCvMakerDocx(){
       <h3>Ringkasan</h3><p>${escapeHtml(d.summary)}</p>
       <h3>Pengalaman Kerja</h3>${formatMultilineToHtml(d.experience)}
       ${d.education ? `<h3>Pendidikan</h3>${formatMultilineToHtml(d.education)}` : ''}
-      ${d.skills ? `<h3>Skill</h3>${formatMultilineToHtml(d.skills)}` : ''}
+      ${d.skills ? `<h3>Skill</h3><p>${escapeHtml(d.skills)}</p>` : ''}
     </body></html>`;
   try{
     const blob = htmlDocx.asBlob(htmlContent);
