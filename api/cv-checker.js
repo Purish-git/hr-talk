@@ -3,6 +3,7 @@
 // saran perbaikan konkret. Beda dari cv-maker.js (yang bikin CV dari nol).
 
 const { isCodeValid } = require('./_lib/redis');
+const { parseJsonFromModel } = require('./_lib/aiJson');
 const { makeRateLimiter } = require('./_lib/rateLimit');
 
 const AI_MODEL = 'claude-haiku-4-5-20251001';
@@ -84,7 +85,7 @@ Review CV ini sesuai aturan di atas.`;
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 1500,
+        max_tokens: 1800,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -101,9 +102,9 @@ Review CV ini sesuai aturan di atas.`;
 
     let parsed;
     try {
-      const cleaned = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-      parsed = JSON.parse(cleaned);
-    } catch (e) {
+      parsed = parseJsonFromModel(rawText);
+    } catch (e) { /* parsed stays undefined, handled below */ }
+    if (!parsed) {
       console.error('Gagal parse JSON dari AI:', rawText);
       return res.status(502).json({ error: 'AI mengembalikan format tidak terduga. Coba regenerate.' });
     }
