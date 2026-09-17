@@ -4,6 +4,7 @@
 // butuh accessCode yang valid — tidak ada versi gratisnya sama sekali.
 
 const { isCodeValid } = require('./_lib/redis');
+const { parseJsonFromModel } = require('./_lib/aiJson');
 const { makeRateLimiter } = require('./_lib/rateLimit');
 
 const AI_MODEL = 'claude-haiku-4-5-20251001';
@@ -115,9 +116,9 @@ Tulis 1 cover letter sesuai semua aturan di atas.`;
 
     let parsed;
     try {
-      const cleaned = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-      parsed = JSON.parse(cleaned);
-    } catch (e) {
+      parsed = parseJsonFromModel(rawText);
+    } catch (e) { /* parsed stays undefined, handled below */ }
+    if (!parsed) {
       console.error('Gagal parse JSON dari AI:', rawText);
       return res.status(502).json({ error: 'AI mengembalikan format tidak terduga. Coba regenerate.' });
     }
