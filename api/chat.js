@@ -29,6 +29,7 @@ const FREE_SITUATIONS = [
   'negosiasi gaji',
   'follow up interview',
   'menanyakan hasil interview',
+  'chat bebas',
 ];
 
 // --- RATE LIMITER (sederhana, in-memory) ---------------------------------
@@ -167,7 +168,8 @@ ATURAN KETAT (wajib dipatuhi semua):
    - Email: HARUS terasa seperti email lengkap yang siap kirim, BUKAN pesan singkat. Sertakan baris subjek (format "Subjek: ..." di baris pertama), lalu salam pembuka, 2-3 paragraf isi (perkenalan singkat konteks, inti permintaan, alasan/detail pendukung), dan salam penutup + nama di baris terakhir (pakai placeholder "[Nama kamu]" untuk nama pengirim karena tidak ada info nama user). Total sekitar 8-14 kalimat. Tanpa emoji.
 5. Hasil harus siap copy-paste langsung, tanpa placeholder seperti "[Nama]" atau "[Perusahaan]" kecuali detail itu memang ada di input user — KECUALI untuk baris nama pengirim di penutup email, boleh pakai "[Nama kamu]".
 6. Jangan asal memenuhi jumlah kalimat dengan basa-basi kosong; setiap kalimat tambahan (terutama di email) harus menambah informasi atau konteks yang relevan dari input user.
-7. Balas HANYA dengan JSON valid berformat persis seperti ini, TANPA teks tambahan apa pun, TANPA markdown code fence, TANPA penjelasan:
+7. Kalau field "Situasi" bertuliskan "chat bebas", itu artinya user menulis pesan langsung tanpa memilih kategori — simpulkan sendiri situasinya dari isi konteks/pesan user, lalu tetap ikuti semua aturan di atas (jangan sebut-sebut label "chat bebas" di hasil pesannya).
+8. Balas HANYA dengan JSON valid berformat persis seperti ini, TANPA teks tambahan apa pun, TANPA markdown code fence, TANPA penjelasan:
 {"safe": "...", "confident": "...", "strategic": "..."}
 
 Definisi tiga versi:
