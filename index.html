@@ -61,21 +61,22 @@
     display:flex;
     align-items:center;
     gap:10px;
-    padding:18px 20px 8px;
+    padding:16px 20px;
     position:sticky;
     top:0;
-    background:var(--bg);
+    background:var(--ink);
+    box-shadow:0 2px 12px rgba(15,27,45,.15);
     z-index:10;
   }
   .backbtn{
-    width:36px;height:36px;
+    width:32px;height:32px;
     border-radius:50%;
-    border:1px solid var(--border);
-    background:var(--surface);
+    border:1px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.12);
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;
-    font-size:16px;
-    color:var(--ink);
+    font-size:15px;
+    color:#fff;
     flex:0 0 auto;
     visibility:hidden;
   }
@@ -84,6 +85,7 @@
     font-family:'Space Grotesk',sans-serif;
     font-weight:700;
     font-size:17px;
+    color:#fff;
     display:flex;
     align-items:center;
     gap:8px;
@@ -228,28 +230,30 @@
   .toolbox-card p{font-size:12.5px;color:var(--ink-soft);margin:4px 0 0;line-height:1.4;}
 
   /* ALL TOOLS */
-  .toolgrid{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+  .toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
   .toolrow{
     display:flex;
+    flex-direction:column;
     align-items:center;
-    gap:12px;
+    text-align:center;
+    gap:8px;
     background:var(--surface);
     border:1px solid var(--border);
     border-radius:var(--radius-md);
-    padding:14px 16px;
+    padding:18px 12px 16px;
     cursor:pointer;
     box-shadow:var(--shadow);
   }
   .toolrow .emoji{
-    width:40px;height:40px;flex:0 0 auto;
+    width:44px;height:44px;flex:0 0 auto;
     background:var(--surface-2);
-    border-radius:var(--radius-sm);
+    border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    font-size:19px;
+    font-size:20px;
   }
-  .toolrow .txt strong{display:block;font-size:14.5px;font-weight:600;}
-  .toolrow .txt span{font-size:12.5px;color:var(--ink-soft);}
-  .toolrow .chev{margin-left:auto;color:var(--ink-soft);font-size:18px;}
+  .toolrow .txt strong{display:block;font-size:13.5px;font-weight:700;line-height:1.3;}
+  .toolrow .txt span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px;line-height:1.35;}
+  .toolrow .chev{display:none;}
 
   /* FORM */
   .form-title{font-size:20px;margin:4px 0 4px;}
@@ -654,28 +658,39 @@
   <!-- IMPROVE MY MESSAGE -->
   <section class="screen" id="screen-improve">
     <h1 class="form-title">Improve my message</h1>
-    <p class="form-sub">Tulis draft pesan kamu apa adanya, biar HR Talk rapikan tanpa ubah maksud kamu.</p>
+    <p class="form-sub">Tulis draft pesan kamu apa adanya, biar AI rapikan tanpa ubah maksud kamu.</p>
     <div class="card">
       <div class="field" style="margin-bottom:10px;">
         <label>Draft pesan kamu</label>
-        <textarea class="rawinput" id="rawMessage" placeholder="Contoh: Pak saya mau minta gaji 8 juta karena menurut saya kerjaan saya banyak."></textarea>
+        <textarea class="rawinput" id="rawMessage" placeholder="Contoh: pak saya mau resign, apa yang harus di lengkapi"></textarea>
       </div>
       <div class="field">
-        <label>Gaya hasil akhir</label>
-        <div class="seg" id="segImproveTone">
-          <button type="button" data-val="profesional" class="active">Profesional</button>
-          <button type="button" data-val="santai">Santai</button>
-          <button type="button" data-val="tegas">Tegas</button>
+        <label>Mau dikirim lewat mana?</label>
+        <div class="seg" id="segImproveMedia">
+          <button type="button" data-val="whatsapp" class="active">WhatsApp</button>
+          <button type="button" data-val="email">Email</button>
+          <button type="button" data-val="linkedin">LinkedIn</button>
         </div>
       </div>
-      <button class="btn btn-primary btn-block" onclick="runImprove()">Perbaiki pesan ini</button>
+      <p class="errmsg" id="improveFormErr">Tulis draft pesannya dulu ya.</p>
+      <p class="errmsg" id="improveApiErr"></p>
+      <div id="improveLoadingState" style="display:none;align-items:center;gap:8px;margin-top:10px;font-size:13.5px;color:var(--ink-soft);font-weight:600;">
+        <span class="spinner" aria-hidden="true"></span> AI sedang membaca konteks…
+      </div>
+      <button class="btn btn-primary btn-block" id="improveGenerateBtn" onclick="runImprove()" style="margin-top:8px;">Perbaiki pesan ini</button>
     </div>
-    <div class="resultcard" id="improveResultWrap" style="margin-top:16px;display:none;">
-      <span class="tag tag-santai">Hasil improve</span>
+
+    <div class="tabbar" id="improveTabs" style="display:none;margin-top:16px;">
+      <button data-v="aman" class="active" onclick="switchImproveVariant('aman')">Aman</button>
+      <button data-v="profesional" onclick="switchImproveVariant('profesional')">Profesional</button>
+      <button data-v="santai" onclick="switchImproveVariant('santai')">Santai</button>
+    </div>
+    <div class="resultcard" id="improveResultWrap" style="margin-top:12px;display:none;">
+      <span class="tag tag-aman" id="improveResultTag">Aman</span>
       <div class="resulttext" id="improveResultText">—</div>
       <div class="actionbar">
         <button class="copybtn" onclick="copyImprove()">📋 Copy</button>
-        <button onclick="runImprove()">🔁 Regenerate</button>
+        <button onclick="regenerateImprove()" id="improveRegenBtn">🔁 Regenerate</button>
       </div>
     </div>
   </section>
@@ -2191,78 +2206,92 @@ function adjustResult(mode){
   showToast(labels[mode]);
 }
 
-/* ---------- 10. IMPROVE MY MESSAGE ---------- */
-const INFORMAL_DICT = [
-  [/\bgua\b|\bgue\b/gi,'saya'],
-  [/\baku\b/gi,'saya'],
-  [/\bgak\b|\bga\b|\bnggak\b|\benggak\b/gi,'tidak'],
-  [/\bkalo\b/gi,'kalau'],
-  [/\bpengen\b/gi,'ingin'],
-  [/\bmau\b/gi,'ingin'],
-  [/\bkerjaan\b/gi,'pekerjaan'],
-  [/\bbanget\b/gi,'sangat'],
-  [/\bnanya\b/gi,'menanyakan'],
-  [/\bdisuruh\b/gi,'diminta'],
-  [/\bbtw\b/gi,'oh iya'],
-  [/\bmakasih\b/gi,'terima kasih'],
-];
-
-function normalizeInformal(text){
-  let t = text;
-  INFORMAL_DICT.forEach(([re, rep])=>{ t = t.replace(re, rep); });
-  return t;
-}
+/* ---------- 10. IMPROVE MY MESSAGE (AI-powered, free tier) ---------- */
+let improveLastRequest = null;
+let improveLastResults = { aman:'', profesional:'', santai:'' };
+let improveCurrentVariant = 'aman';
 
 function runImprove(){
   const raw = document.getElementById('rawMessage').value.trim();
-  const tone = getSegVal('segImproveTone');
-  if(!raw){
-    showToast('Tulis draft pesannya dulu ya ✍️');
-    return;
+  const media = getSegVal('segImproveMedia');
+
+  const errEl = document.getElementById('improveFormErr');
+  document.getElementById('improveApiErr').style.display = 'none';
+  if(!raw){ errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+
+  const payload = { rawMessage: raw, media, accessCode: getStoredCode() };
+  improveLastRequest = payload;
+  generateImproveViaAI(payload, {navigateOnSuccess:false});
+}
+
+async function generateImproveViaAI(payload, opts){
+  opts = opts || {};
+  const btn = document.getElementById('improveGenerateBtn');
+  const loadingEl = document.getElementById('improveLoadingState');
+  const regenBtn = document.getElementById('improveRegenBtn');
+
+  if(!opts.regenerating){ btn.disabled = true; loadingEl.style.display = 'flex'; }
+  else if(regenBtn){ regenBtn.disabled = true; regenBtn.textContent = '⏳ AI sedang membaca konteks…'; }
+
+  try{
+    const res = await fetch('/api/improve-message', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    let data; try{ data = await res.json(); }catch(e){ data = null; }
+
+    if(!res.ok || !data || data.error){
+      if(data && data.needsUpgrade){ goTo('upgrade'); showToast(data.error || 'Butuh Premium buat lanjut 🔓'); return; }
+      throw new Error((data && data.error) || 'Gagal memuat respons dari AI.');
+    }
+
+    improveLastResults = { aman: data.aman||'', profesional: data.profesional||'', santai: data.santai||'' };
+    improveCurrentVariant = 'aman';
+    renderImproveResult();
+    document.getElementById('improveTabs').style.display = 'flex';
+    document.getElementById('improveResultWrap').style.display = 'block';
+    if(opts.regenerating) showToast('Versi baru dari AI siap 🔁');
+
+  }catch(err){
+    console.error(err);
+    if(opts.regenerating){ showToast('Gagal regenerate, coba lagi ya'); }
+    else{
+      const errEl = document.getElementById('improveApiErr');
+      errEl.textContent = '⚠️ ' + (err.message || 'Gagal menghubungi AI. Coba lagi ya.');
+      errEl.style.display = 'block';
+    }
+  }finally{
+    if(!opts.regenerating){ btn.disabled = false; loadingEl.style.display = 'none'; }
+    else if(regenBtn){ regenBtn.disabled = false; regenBtn.textContent = '🔁 Regenerate'; }
   }
-  let cleaned = normalizeInformal(raw);
-  cleaned = cleaned.replace(/\s{2,}/g,' ').trim();
-  // remove leading sapaan words like "Pak" / "Bu" to reuse as target-of-address
-  let sapaan = '';
-  const sapaanMatch = cleaned.match(/^(Pak|Bu|Bapak|Ibu|Kak)\s*[, ]/i);
-  if(sapaanMatch){
-    sapaan = sapaanMatch[1];
-    cleaned = cleaned.slice(sapaanMatch[0].length);
-  }
-  cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
 
-  // try to split main ask vs reason via " karena "
-  let mainPart = cleaned, reasonPart = '';
-  const karenaIdx = cleaned.toLowerCase().indexOf(' karena ');
-  if(karenaIdx > -1){
-    mainPart = cleaned.slice(0, karenaIdx);
-    reasonPart = cleaned.slice(karenaIdx + 8);
-  }
-  mainPart = mainPart.replace(/^saya\s+/i,'').replace(/[.,]\s*$/,'');
-  reasonPart = reasonPart.replace(/[.,]\s*$/,'');
+function renderImproveResult(){
+  document.querySelectorAll('#improveTabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v===improveCurrentVariant);
+  });
+  const tagMap = { aman:['Aman','tag-aman'], profesional:['Profesional','tag-tegas'], santai:['Santai','tag-santai'] };
+  const [label, cls] = tagMap[improveCurrentVariant];
+  const tag = document.getElementById('improveResultTag');
+  tag.textContent = label;
+  tag.className = 'tag ' + cls;
+  document.getElementById('improveResultText').textContent = improveLastResults[improveCurrentVariant];
+}
 
-  const openers = {
-    profesional: `Selamat pagi/siang${sapaan? ' '+sapaan: ''}, izin menyampaikan,`,
-    santai: `Halo${sapaan? ' '+sapaan: ''}, izin cerita sedikit ya,`,
-    tegas: `Selamat pagi/siang${sapaan? ' '+sapaan: ''}, saya ingin menyampaikan secara langsung,`,
-  };
-  const closers = {
-    profesional: 'Mohon kiranya dapat dipertimbangkan. Terima kasih banyak.',
-    santai: 'Semoga bisa dipertimbangkan ya, makasih banyak sebelumnya 😊',
-    tegas: 'Mohon konfirmasi dan tindak lanjutnya. Terima kasih.',
-  };
+function switchImproveVariant(v){
+  improveCurrentVariant = v;
+  renderImproveResult();
+}
 
-  let result = `${openers[tone]} saya ${mainPart}${reasonPart? ', mengingat '+reasonPart : ''}. ${closers[tone]}`;
-  result = result.replace(/\s{2,}/g,' ').trim();
-  if(tone!=='santai') result = result.replace(/😊/g,'');
-
-  document.getElementById('improveResultText').textContent = result;
-  document.getElementById('improveResultWrap').style.display='block';
-  state.lastImprove = result;
+function regenerateImprove(){
+  if(!improveLastRequest){ showToast('Belum ada permintaan sebelumnya'); return; }
+  generateImproveViaAI(improveLastRequest, {regenerating:true});
 }
 
 function copyImprove(){
-  copyText(state.lastImprove || document.getElementById('improveResultText').textContent);
+  const text = improveLastResults[improveCurrentVariant];
+  if(!text){ showToast('Belum ada hasil buat di-copy'); return; }
+  copyText(text);
 }
 
 /* ---------- 11. WHAT SHOULD I SAY NEXT ---------- */
