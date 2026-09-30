@@ -163,7 +163,7 @@ ATURAN KETAT (wajib dipatuhi semua):
 2. JANGAN mengarang fakta, angka, nama, atau detail apa pun yang tidak ada di input user. Kalau suatu detail tidak disebutkan, jangan ditambahkan sendiri.
 3. JANGAN mengubah maksud utama pesan/permintaan user. Kamu hanya merapikan cara penyampaiannya.
 4. Sesuaikan gaya DAN panjang dengan media pengiriman:
-   - WhatsApp: ringkas banget, langsung ke inti, sekitar 2-4 kalimat pendek dalam 1 paragraf, tidak terlalu formal. Boleh pakai emoji secukupnya HANYA kalau nadanya santai/percaya diri dan konteksnya bukan topik berat (misalnya resign atau komplain serius).
+   - WhatsApp: tetap ringkas (bukan sepanjang email), tapi jangan terlalu singkat sampai terasa terpotong — target sekitar 2 paragraf pendek (total 4-6 kalimat): 1 paragraf pembuka + inti permintaan, 1 paragraf penutup yang sopan (misal menanyakan langkah selanjutnya/dokumen yang diperlukan, lalu ucapan terima kasih). Boleh dipisah baris kosong (\\n\\n) antar paragraf. Tidak terlalu formal. Boleh pakai emoji secukupnya HANYA kalau nadanya santai/percaya diri dan konteksnya bukan topik berat (misalnya resign atau komplain serius).
    - LinkedIn: sopan dan profesional, sekitar 3-5 kalimat, tanpa emoji, tidak sekaku email resmi.
    - Email: HARUS mengikuti format template surat resmi berikut PERSIS (pakai \\n untuk ganti baris, KOSONGKAN 1 baris antar bagian):
      Subjek: [judul singkat sesuai isi] – [Nama Lengkap Anda]
