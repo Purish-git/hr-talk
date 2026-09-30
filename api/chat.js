@@ -1,63 +1,170 @@
-// api/improve-message.js
-// Fitur GRATIS (bukan premium) — merapikan draft pesan mentah user jadi 3
-// versi tone (aman/profesional/santai), disesuaikan sama media pengiriman.
-// Beda dari chat.js: tone-nya bukan soal strategi negosiasi (safe/confident/
-// strategic), tapi murni gaya bahasa (aman/profesional/santai) — cocok buat
-// pesan APAPUN (resign, izin, komplain, dll), bukan cuma nego gaji.
+// api/chat.js
+// Vercel Serverless Function.
+// Menerima { message, situation, tone, media, accessCode? } dari frontend,
+// meneruskan ke Claude API (Anthropic), lalu mengembalikan 3 opsi pesan:
+// safe, confident, strategic.
+//
+// MODEL FREEMIUM:
+// - Tanpa accessCode (atau kode tidak valid): user "free" — cuma boleh akses
+//   situasi yang ada di FREE_SITUATIONS, dan dibatasi MAX_FREE_PER_IP_PER_DAY
+//   generate/hari.
+// - Dengan accessCode yang valid (dicek ke Redis lewat api/_lib/redis.js):
+//   user "premium" — semua 13 situasi kebuka, limit hariannya jauh lebih
+//   longgar (MAX_PREMIUM_PER_IP_PER_DAY), bukan berarti benar-benar tanpa
+//   batas — ini cuma jaring pengaman kalau ada 1 kode bocor/disalahgunakan.
+//
+// PENTING: API key TIDAK PERNAH dikirim ke frontend. Kunci dibaca di sini,
+// di server, dari environment variable ANTHROPIC_API_KEY.
 
-const { makeRateLimiter } = require('./_lib/rateLimit');
+const { isCodeValid, incrementCodeUsage } = require('./_lib/redis');
 const { parseJsonFromModel } = require('./_lib/aiJson');
 
 const AI_MODEL = 'claude-haiku-4-5-20251001';
 const ANTHROPIC_VERSION = '2023-06-01';
 
-// Limit terpisah dari chat.js karena ini endpoint beda — biar nggak dobel
-// jatah, angkanya sengaja lebih kecil (fitur pelengkap, bukan fitur utama).
-const checkLimit = makeRateLimiter({
-  maxPerIpPerDay: Number(process.env.MAX_IMPROVE_REQUESTS_PER_IP_PER_DAY || 5),
-  maxGlobalPerDay: Number(process.env.MAX_REQUESTS_GLOBAL_PER_DAY || 300),
-});
+// --- FREEMIUM: situasi yang boleh diakses tanpa bayar ---------------------
+// Nilai di sini HARUS cocok persis dengan `situation.toLowerCase()` yang
+// dikirim frontend (frontend mengirim label situasi dalam huruf kecil).
+const FREE_SITUATIONS = [
+  'negosiasi gaji',
+  'follow up interview',
+  'menanyakan hasil interview',
+  'chat bebas',
+];
+
+// --- RATE LIMITER (sederhana, in-memory) ---------------------------------
+// Sama seperti sebelumnya: ini lapis kedua, bukan pengganti hard spend limit
+// di console.anthropic.com. In-memory berarti counter bisa reset kalau
+// function di-restart Vercel — cukup untuk skala awal, upgrade ke Redis
+// penuh nanti kalau traffic sudah besar.
+const usageStore = new Map(); // key: "ip|YYYY-MM-DD|tier" -> jumlah request hari itu
+const globalUsageStore = new Map(); // key: "YYYY-MM-DD" -> jumlah request semua orang hari itu
+
+const MAX_FREE_PER_IP_PER_DAY = Number(process.env.MAX_FREE_REQUESTS_PER_IP_PER_DAY || 3);
+const MAX_PREMIUM_PER_IP_PER_DAY = Number(process.env.MAX_PREMIUM_REQUESTS_PER_IP_PER_DAY || 100);
+const MAX_GLOBAL_PER_DAY = Number(process.env.MAX_REQUESTS_GLOBAL_PER_DAY || 300);
+
+function getClientIp(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd) return fwd.split(',')[0].trim();
+  return req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : 'unknown';
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10); // "2026-09-14"
+}
+
+function checkAndIncrementLimit(req, isPremium) {
+  const day = todayKey();
+  const ip = getClientIp(req);
+  const tier = isPremium ? 'premium' : 'free';
+  const ipKey = `${ip}|${day}|${tier}`;
+  const perIpMax = isPremium ? MAX_PREMIUM_PER_IP_PER_DAY : MAX_FREE_PER_IP_PER_DAY;
+
+  const globalCount = globalUsageStore.get(day) || 0;
+  if (globalCount >= MAX_GLOBAL_PER_DAY) {
+    return { allowed: false, reason: 'global' };
+  }
+
+  const ipCount = usageStore.get(ipKey) || 0;
+  if (ipCount >= perIpMax) {
+    return { allowed: false, reason: isPremium ? 'ip_premium' : 'ip_free' };
+  }
+
+  usageStore.set(ipKey, ipCount + 1);
+  globalUsageStore.set(day, globalCount + 1);
+
+  if (usageStore.size > 5000) usageStore.clear();
+
+  return { allowed: true, remaining: perIpMax - (ipCount + 1) };
+}
+// ---------------------------------------------------------------------------
 
 module.exports = async function handler(req, res) {
+  // --- 1. Hanya izinkan POST ---
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method tidak diizinkan. Gunakan POST.' });
   }
 
+  // --- 2. Ambil API key dari environment variable ---
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'Server belum dikonfigurasi: ANTHROPIC_API_KEY tidak ditemukan.' });
+    return res.status(500).json({
+      error: 'Server belum dikonfigurasi: environment variable ANTHROPIC_API_KEY tidak ditemukan.',
+    });
   }
 
+  // --- 3. Parse & validasi body ---
   let body = req.body;
   if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch (e) { return res.status(400).json({ error: 'Body bukan JSON valid.' }); }
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      return res.status(400).json({ error: 'Body request bukan JSON yang valid.' });
+    }
   }
-  const { rawMessage, media } = body || {};
+  const { message, situation, tone, media, accessCode } = body || {};
 
-  if (!rawMessage || typeof rawMessage !== 'string' || !rawMessage.trim()) {
-    return res.status(400).json({ error: 'Field "rawMessage" wajib diisi.' });
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Field "message" wajib diisi.' });
+  }
+  if (!situation || typeof situation !== 'string' || !situation.trim()) {
+    return res.status(400).json({ error: 'Field "situation" wajib diisi.' });
   }
 
-  const safeMedia = typeof media === 'string' && ['whatsapp', 'email', 'linkedin'].includes(media) ? media : 'whatsapp';
+  const safeTone = typeof tone === 'string' && tone.trim() ? tone.trim() : 'safe';
+  const safeMedia = typeof media === 'string' && media.trim() ? media.trim() : 'whatsapp';
+  const situationLower = situation.trim().toLowerCase();
+  const cleanCode = typeof accessCode === 'string' ? accessCode.trim().toUpperCase() : '';
 
-  const limitCheck = checkLimit(req);
+  // --- 3b. Cek status premium (kalau ada kode yang dikirim) ---
+  let isPremium = false;
+  if (cleanCode) {
+    try {
+      const codeCheck = await isCodeValid(cleanCode);
+      isPremium = codeCheck.valid;
+    } catch (err) {
+      // Kalau Redis belum diset / error koneksi, JANGAN block seluruh app —
+      // anggap saja user ini free untuk request ini, tapi catat di log biar
+      // kamu tahu ada masalah konfigurasi.
+      console.error('Gagal cek kode premium (dianggap free):', err.message);
+      isPremium = false;
+    }
+  }
+
+  // --- 3c. Kalau bukan premium, cek apakah situasi ini termasuk gratisan ---
+  if (!isPremium && !FREE_SITUATIONS.includes(situationLower)) {
+    return res.status(403).json({
+      error: 'Situasi ini khusus untuk user premium. Upgrade dulu untuk akses semua fitur ya 🔓',
+      needsUpgrade: true,
+    });
+  }
+
+  // --- 3d. Cek rate limit sesuai tier ---
+  const limitCheck = checkAndIncrementLimit(req, isPremium);
   if (!limitCheck.allowed) {
-    const msg = limitCheck.reason === 'ip'
-      ? 'Kuota Improve Message kamu hari ini sudah habis. Coba lagi besok ya 🙏'
-      : 'Layanan sedang penuh untuk hari ini. Coba lagi besok ya 🙏';
-    return res.status(429).json({ error: msg });
+    let msg;
+    if (limitCheck.reason === 'ip_free') {
+      msg = 'Kuota gratis kamu hari ini sudah habis. Upgrade buat generate lebih banyak, atau coba lagi besok ya 🙏';
+    } else if (limitCheck.reason === 'ip_premium') {
+      msg = 'Kamu sudah mencapai batas generate hari ini. Coba lagi besok ya 🙏';
+    } else {
+      msg = 'Layanan sedang penuh untuk hari ini. Coba lagi besok ya 🙏';
+    }
+    return res.status(429).json({ error: msg, needsUpgrade: limitCheck.reason === 'ip_free' });
   }
 
-  const systemPrompt = `Kamu adalah asisten yang merapikan draft pesan mentah dari pekerja/fresh graduate Indonesia (biasanya ditulis buru-buru/informal ke HR, atasan, atau rekan kerja) jadi pesan yang lebih rapi dan pantas dikirim — TANPA mengubah maksud utamanya dan TANPA mengarang detail yang tidak ada di draft aslinya.
+  // --- 4. Susun prompt ---
+  const systemPrompt = `Kamu adalah asisten yang membantu pekerja dan fresh graduate Indonesia usia 20-30 tahun menyusun pesan singkat untuk HR atau recruiter.
 
-ATURAN KETAT:
-1. JANGAN menambahkan fakta, tanggal, alasan, atau detail apa pun yang tidak disebutkan user. Kalau draft user cuma menanyakan sesuatu (misal "apa yang harus dilengkapi"), hasil akhirnya juga tetap berupa pertanyaan itu, dirapikan — JANGAN diubah jadi pernyataan resmi yang mengarang detail (contoh: jangan mengarang tanggal terakhir kerja kalau user tidak menyebutkannya).
-2. JANGAN mengubah maksud/inti permintaan user sama sekali. Kamu hanya merapikan cara penyampaiannya.
-3. Bahasa Indonesia natural, TIDAK terdengar seperti tulisan AI (hindari frasa klise seperti "Dengan hormat saya sampaikan", "Demikian pesan ini saya sampaikan", dsb kecuali memang wajar untuk email formal).
-4. Sesuaikan gaya DAN struktur dengan media pengiriman:
-   - WhatsApp: WAJIB persis 3 paragraf pendek (pembuka singkat, inti pesan, penutup), dipisah baris kosong (\\n\\n). Tetap ringkas per paragrafnya, tidak bertele-tele, tapi jangan cuma 1 paragraf.
-   - LinkedIn: sopan dan profesional, 3-5 kalimat, tanpa emoji.
+ATURAN KETAT (wajib dipatuhi semua):
+1. Tulis dalam Bahasa Indonesia yang natural, singkat, tidak kaku, dan TIDAK terdengar seperti tulisan AI. Hindari frasa klise seperti "Berikut adalah", "Semoga pesan ini membantu", "Dengan hormat saya sampaikan", dsb kecuali memang wajar untuk email formal.
+2. JANGAN mengarang fakta, angka, nama, atau detail apa pun yang tidak ada di input user. Kalau suatu detail tidak disebutkan, jangan ditambahkan sendiri.
+3. JANGAN mengubah maksud utama pesan/permintaan user. Kamu hanya merapikan cara penyampaiannya.
+4. Sesuaikan gaya DAN panjang dengan media pengiriman:
+   - WhatsApp: ringkas banget, langsung ke inti, sekitar 2-4 kalimat pendek dalam 1 paragraf, tidak terlalu formal. Boleh pakai emoji secukupnya HANYA kalau nadanya santai/percaya diri dan konteksnya bukan topik berat (misalnya resign atau komplain serius).
+   - LinkedIn: sopan dan profesional, sekitar 3-5 kalimat, tanpa emoji, tidak sekaku email resmi.
    - Email: HARUS mengikuti format template surat resmi berikut PERSIS (pakai \\n untuk ganti baris, KOSONGKAN 1 baris antar bagian):
      Subjek: [judul singkat sesuai isi] – [Nama Lengkap Anda]
 
@@ -77,22 +184,27 @@ ATURAN KETAT:
      [Jabatan/Posisi Anda]
      [Nomor Kontak Anda]
 
-     PENTING soal placeholder: kalau user MENYEBUTKAN detail tertentu, WAJIB pakai detail asli itu, JANGAN diganti placeholder. Untuk field struktural yang TIDAK disebutkan (nama atasan, jabatan, nomor kontak, dst), WAJIB tetap diisi placeholder kurung siku seperti contoh — JANGAN dihilangkan, karena email ini berfungsi sebagai template siap-edit. Tanpa emoji.
-5. Buat 3 versi dengan tone BERBEDA (bukan strategi, murni gaya bahasa):
-   - aman: paling hati-hati, sopan, dan lembut — risiko menyinggung paling kecil.
-   - profesional: standar, lugas, formal secukupnya, tidak berlebihan.
-   - santai: lebih rileks dan personal, boleh pakai emoji secukupnya HANYA kalau media WhatsApp dan topiknya bukan hal berat (resign/komplain serius tetap tanpa emoji meski tone santai).
-6. Untuk WhatsApp dan LinkedIn: hasil harus siap copy-paste langsung TANPA placeholder sama sekali. Untuk Email: IKUTI aturan placeholder khusus di poin format Email di atas.
-7. Balas HANYA dengan JSON valid, TANPA markdown fence, format persis:
-{"aman": "...", "profesional": "...", "santai": "..."}`;
+     PENTING soal placeholder di format email ini: kalau user MENYEBUTKAN detail tertentu (nama, jabatan, divisi, tanggal, dll) di konteksnya, WAJIB pakai detail asli itu, JANGAN diganti placeholder. Tapi untuk field struktural yang TIDAK disebutkan user (nama atasan, jabatan penerima, nomor kontak, dst), WAJIB tetap diisi placeholder dalam kurung siku seperti contoh di atas — JANGAN dihilangkan/dikosongkan begitu saja, karena email ini berfungsi sebagai template siap-edit. Tanpa emoji.
+5. Untuk WhatsApp dan LinkedIn: hasil harus siap copy-paste langsung TANPA placeholder — kalau suatu detail tidak disebutkan user, cukup tulis dengan lebih umum/tanpa menyebut detail itu, JANGAN pakai tanda kurung siku. Untuk Email: IKUTI aturan placeholder khusus di poin format Email di atas (placeholder kurung siku memang diharapkan di sana, karena formatnya template surat siap-edit).
+6. Jangan asal memenuhi jumlah kalimat dengan basa-basi kosong; setiap kalimat tambahan (terutama di email) harus menambah informasi atau konteks yang relevan dari input user.
+7. Kalau field "Situasi" bertuliskan "chat bebas", itu artinya user menulis pesan langsung tanpa memilih kategori — simpulkan sendiri situasinya dari isi konteks/pesan user, lalu tetap ikuti semua aturan di atas (jangan sebut-sebut label "chat bebas" di hasil pesannya).
+8. Balas HANYA dengan JSON valid berformat persis seperti ini, TANPA teks tambahan apa pun, TANPA markdown code fence, TANPA penjelasan:
+{"safe": "...", "confident": "...", "strategic": "..."}
 
-  const userPrompt = `Media pengiriman: ${safeMedia}
+Definisi tiga versi:
+- safe: paling hati-hati dan sopan, risiko menyinggung atau memicu konflik paling kecil.
+- confident: langsung ke inti, percaya diri, tetap sopan, tidak bertele-tele.
+- strategic: mempertimbangkan posisi tawar user, membuka ruang negosiasi atau opsi win-win, tanpa terdengar menuntut.`;
 
-Draft pesan mentah dari user:
-"""${rawMessage.trim()}"""
+  const userPrompt = `Situasi: ${situation}
+Media pengiriman yang dipilih user: ${safeMedia}
+Kecenderungan gaya yang disukai user (jadikan referensi, bukan patokan mutlak — tetap buat ketiga versi): ${safeTone}
+Konteks / detail dari user:
+"""${message.trim()}"""
 
-Rapikan jadi 3 versi (aman, profesional, santai) sesuai semua aturan di atas.`;
+Buatkan 3 versi pesan (safe, confident, strategic) sesuai semua aturan di atas.`;
 
+  // --- 5. Panggil Claude API ---
   try {
     const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -103,7 +215,7 @@ Rapikan jadi 3 versi (aman, profesional, santai) sesuai semua aturan di atas.`;
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 2000,
+        max_tokens: 2400,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -112,25 +224,47 @@ Rapikan jadi 3 versi (aman, profesional, santai) sesuai semua aturan di atas.`;
     if (!aiResponse.ok) {
       const errText = await aiResponse.text().catch(() => '');
       console.error('AI API error:', aiResponse.status, errText);
-      return res.status(502).json({ error: 'Gagal menghubungi AI API. Coba lagi sebentar lagi.' });
+      return res.status(502).json({
+        error: 'Gagal menghubungi AI API. Coba lagi sebentar lagi.',
+      });
     }
 
     const data = await aiResponse.json();
-    const rawText = (data.content || []).map((b) => b.text || '').join('').trim();
+    const rawText = (data.content || [])
+      .map((block) => block.text || '')
+      .join('')
+      .trim();
 
+    // --- 6. Parse JSON dari jawaban model ---
     let parsed;
     try {
       parsed = parseJsonFromModel(rawText);
     } catch (e) { /* parsed stays undefined, handled below */ }
-    if (!parsed || !parsed.aman || !parsed.profesional || !parsed.santai) {
+    if (!parsed) {
       console.error('Gagal parse JSON dari AI:', rawText);
-      return res.status(502).json({ error: 'AI mengembalikan format tidak terduga. Coba regenerate.' });
+      return res.status(502).json({
+        error: 'AI mengembalikan format yang tidak terduga. Coba regenerate.',
+      });
     }
 
+    if (!parsed || !parsed.safe || !parsed.confident || !parsed.strategic) {
+      return res.status(502).json({
+        error: 'Respons AI tidak lengkap (ada opsi yang hilang). Coba regenerate.',
+      });
+    }
+
+    // --- 6b. Kalau user premium, catat pemakaian kodenya ---
+    if (isPremium && cleanCode) {
+      incrementCodeUsage(cleanCode); // sengaja tidak di-await ketat, jangan sampai gagalin response utama
+    }
+
+    // --- 7. Kirim hasil bersih ke frontend ---
     return res.status(200).json({
-      aman: String(parsed.aman).trim(),
-      profesional: String(parsed.profesional).trim(),
-      santai: String(parsed.santai).trim(),
+      safe: String(parsed.safe).trim(),
+      confident: String(parsed.confident).trim(),
+      strategic: String(parsed.strategic).trim(),
+      isPremium,
+      remainingToday: limitCheck.remaining,
     });
   } catch (err) {
     console.error('Handler error:', err);
