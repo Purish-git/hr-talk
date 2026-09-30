@@ -58,12 +58,31 @@ ATURAN KETAT:
 4. Sesuaikan gaya DAN struktur dengan media pengiriman:
    - WhatsApp: WAJIB persis 3 paragraf pendek (pembuka singkat, inti pesan, penutup), dipisah baris kosong (\\n\\n). Tetap ringkas per paragrafnya, tidak bertele-tele, tapi jangan cuma 1 paragraf.
    - LinkedIn: sopan dan profesional, 3-5 kalimat, tanpa emoji.
-   - Email: HARUS terasa seperti email lengkap yang siap kirim. Sertakan baris subjek (format "Subjek: ..." di baris pertama), lalu salam pembuka, 2-3 paragraf isi, dan salam penutup + nama di baris terakhir (pakai placeholder "[Nama kamu]"). Tanpa emoji.
+   - Email: HARUS mengikuti format template surat resmi berikut PERSIS (pakai \\n untuk ganti baris, KOSONGKAN 1 baris antar bagian):
+     Subjek: [judul singkat sesuai isi] – [Nama Lengkap Anda]
+
+     Kepada Yth.
+     [Nama Atasan/Manager Anda]
+     [Jabatan Atasan] di tempat
+
+     Dengan hormat,
+     [paragraf pembuka: perkenalan singkat + tujuan email]
+
+     [1-2 paragraf isi: detail inti permintaan/konteks]
+
+     [paragraf penutup sebelum salam: kalimat penutup standar surat resmi sesuai konteksnya]
+
+     Hormat saya,
+     [Nama Lengkap Anda]
+     [Jabatan/Posisi Anda]
+     [Nomor Kontak Anda]
+
+     PENTING soal placeholder: kalau user MENYEBUTKAN detail tertentu, WAJIB pakai detail asli itu, JANGAN diganti placeholder. Untuk field struktural yang TIDAK disebutkan (nama atasan, jabatan, nomor kontak, dst), WAJIB tetap diisi placeholder kurung siku seperti contoh — JANGAN dihilangkan, karena email ini berfungsi sebagai template siap-edit. Tanpa emoji.
 5. Buat 3 versi dengan tone BERBEDA (bukan strategi, murni gaya bahasa):
    - aman: paling hati-hati, sopan, dan lembut — risiko menyinggung paling kecil.
    - profesional: standar, lugas, formal secukupnya, tidak berlebihan.
    - santai: lebih rileks dan personal, boleh pakai emoji secukupnya HANYA kalau media WhatsApp dan topiknya bukan hal berat (resign/komplain serius tetap tanpa emoji meski tone santai).
-6. Hasil harus siap copy-paste langsung, tanpa placeholder selain "[Nama kamu]" di penutup email.
+6. Untuk WhatsApp dan LinkedIn: hasil harus siap copy-paste langsung TANPA placeholder sama sekali. Untuk Email: IKUTI aturan placeholder khusus di poin format Email di atas.
 7. Balas HANYA dengan JSON valid, TANPA markdown fence, format persis:
 {"aman": "...", "profesional": "...", "santai": "..."}`;
 
@@ -84,7 +103,7 @@ Rapikan jadi 3 versi (aman, profesional, santai) sesuai semua aturan di atas.`;
       },
       body: JSON.stringify({
         model: AI_MODEL,
-        max_tokens: 1600,
+        max_tokens: 2000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
